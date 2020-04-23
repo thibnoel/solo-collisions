@@ -112,7 +112,7 @@ void computeDistance(Segment seg1, Segment seg2, double& distanceResult)
     //return distanceResult;
 }
 
-void computeDistanceFromPoints(double x10,
+double computeDistanceFromPoints(double x10,
                                double y10, 
                                double z10,
                                double x11,
@@ -123,8 +123,10 @@ void computeDistanceFromPoints(double x10,
                                double z20,
                                double x21,
                                double y21,
-                               double z21,
-                               double& distanceResult){
+                               double z21){
+    
+    double distanceResult = INFINITY;
+
     Eigen::Vector3d p10(x10,y10,z10);
     Eigen::Vector3d p11(x11,y11,z11);
     Eigen::Vector3d p20(x20,y20,z20);
@@ -134,7 +136,7 @@ void computeDistanceFromPoints(double x10,
     Segment s1 = Segment(p20,p21);
 
     computeDistance(s0,s1,distanceResult);
-    
+    return distanceResult;
     }
 
 int main(void) {
@@ -150,7 +152,7 @@ int main(void) {
     double distResultP = INFINITY;
     //double cDist = computeDistance(s1, s2);
     computeDistance(s1,s2, distResult);
-    computeDistanceFromPoints(0,0,0,1,1,1,0,0,2,0,0,3, distResultP);
+    distResultP = computeDistanceFromPoints(0,0,0,1,1,1,0,0,2,0,0,3);
 
     std::cout << "Shortest distance (vectors) :\n" << distResult << std::endl;
     std::cout << "Shortest distance (doubles) :\n" << distResultP << std::endl;
