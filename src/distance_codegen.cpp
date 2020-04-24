@@ -154,7 +154,7 @@ Scalar computeDistanceFromSegments(Scalar x10,
 
     // Check the constraint t in [0,1]
     // REIMPLEMENTATION WITH CondExp TODO
-    if (t_num < 0){
+    /*if (t_num < 0){
         t_num = 0 ;  // constrain t to 0 
         // Re check constrain on s
         if (-uTw < 0){
@@ -167,6 +167,16 @@ Scalar computeDistanceFromSegments(Scalar x10,
             s_num = -uTw ;
             s_den = uTu ;
         }
+
+        out1_if = 0;
+        out0_if = s_num;
+        s_num = CondExpLt(-uTw, condZero, out1_if, out0_if)
+        out1_if = s_den;
+        out0_if = -uTw;
+        s_num = CondExpGt(-uTw, uTu, out1_if, out0_if);
+        out1_if = s_den;
+        out0_if = uTu;
+        s_den = CondExpGt(-uTw, uTu, out1_if, out0_if);
     }
     else if (t_num > t_den) {
         t_num = t_den ;  // constrain t to 1
@@ -180,7 +190,44 @@ Scalar computeDistanceFromSegments(Scalar x10,
             s_num = -uTw + uTv ;
             s_den = uTu ;
         }
-    }
+
+        out1_if = 0;
+        out0_if = s_num;
+        s_num = CondExpLt(-uTw + uTv, condZero, out1_if, out0_if)
+        out1_if = s_den;
+        out0_if = -uTw + uTv;
+        s_num = CondExpGt(-uTw + uTv, uTu, out1_if, out0_if);
+        out1_if = s_den;
+        out0_if = uTu;
+        s_den = CondExpGt(-uTw + uTv, uTu, out1_if, out0_if);
+    }*/
+
+    out1_if = 0;
+    out0_if = t_num;
+    t_num = CondExpLt(t_num, condZero, out1_if, out0_if);
+    out1_if = t_den;
+    out0_if = t_num;
+    t_num = CondExpGt(t_num, t_den, out1_if, out0_if);
+    // Test against what should s be compared
+    Scalar s_comp;
+    s_comp = s_num;
+
+    out1_if = -uTw;
+    out0_if = s_num;
+    s_comp = CondExpLt(t_num, condZero, out1_if, out0_if);
+    out1_if = -uTw + uTv;
+    out0_if = s_num;
+    s_comp = CondExpGt(t_num, t_den, out1_if, out0_if);
+
+    out1_if = 0;
+    out0_if = s_num;
+    s_num = CondExpLt(s_comp, condZero, out1_if, out0_if);
+    out1_if = s_den;
+    out0_if = s_comp;
+    s_num = CondExpGt(s_comp, uTu, out1_if, out0_if);
+    out1_if = s_den;
+    out0_if = uTu;
+    s_den = CondExpGt(s_comp, uTu, out1_if, out0_if);
 
     // Final computation of s_closest, t_closest
     /*
@@ -298,4 +345,22 @@ int main(void) {
     std::cout << code.str();
     std::cout << "// Generated dist'(x) :\n";
     std::cout << code_jac.str();
+
+    /* Do a computation with the generated code
+    CppAD::vector<ADScalar> test_x(12);
+    test_x[0] = 0.;
+    test_x[1] = 0.;
+    test_x[2] = 0.;
+    test_x[3] = 1.;
+    test_x[4] = 1.;
+    test_x[5] = 1.;
+    test_x[6] = 0.;
+    test_x[7] = 0.;
+    test_x[8] = 2.;
+    test_x[9] = 0.;
+    test_x[10] = 0.;
+    test_x[11] = 3.;
+
+    CppAD::vector<ADScalar> test_y(1);*/
+
 }
