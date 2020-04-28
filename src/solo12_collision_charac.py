@@ -76,11 +76,6 @@ if(enableGUI):
                         gv.setColor(n, [1,0.5,0.2,1])
                         gv.setVisibility(n,'OFF')
         gv.refresh()
-
-x_rot_range = [0, 2*np.pi]
-y_rot_range = [0, 2*np.pi]
-x_discrete_steps = 250
-y_discrete_steps = 250
 gdata = gmodel.createData()
 
 def testGeomConfig(x_rot, y_rot, collisionPair):
@@ -203,15 +198,18 @@ def followBoundary(col_map, dist_threshold=0, first_dir=6):
         #print(traj)
         return traj[first_dir_change_index:]
                         
-
+x_rot_range = [-np.pi, np.pi]
+y_rot_range = [0, 2*np.pi]
+x_discrete_steps = 200
+y_discrete_steps = 200
 
 col_map, nearest_points_map = computeCollisionMap(x_rot_range, y_rot_range, x_discrete_steps, y_discrete_steps)
 col_map = np.array(col_map).T
 binary_col_map = np.array(col_map) > 0
 
-traj = followBoundary(col_map)
-traj002 = followBoundary(col_map, dist_threshold=0.002)
-traj001 = followBoundary(col_map, dist_threshold=0.001)
+#traj = followBoundary(col_map)
+#traj002 = followBoundary(col_map, dist_threshold=0.002)
+#traj001 = followBoundary(col_map, dist_threshold=0.001)
 
 # Animate the boundary trajectory in the viewer
 def displayTraj(traj):
@@ -220,18 +218,18 @@ def displayTraj(traj):
                 visualizeCollisionDist(nearest_points_map[t[0]][t[1]][0], nearest_points_map[t[0]][t[1]][1], "test", [0.2,1,0,0.5])
 
 #plt.figure()
-plt.matshow(binary_col_map.astype(float))#, extent=[x_rot_range[0], x_rot_range[1], y_rot_range[0],y_rot_range[1]])
+plt.matshow(binary_col_map.astype(float), extent=[y_rot_range[0], y_rot_range[1], x_rot_range[0],x_rot_range[1]])
 plt.xlabel('Shoulder Y rot.')
 plt.ylabel('Shoulder X rot.')
 
 #plt.colorbar(label='Dist. Body to upper leg')
 
 #plt.figure()
-plt.matshow(np.array(col_map))#, extent=[x_rot_range[0], x_rot_range[1], y_rot_range[0],y_rot_range[1]])#, vmin=0)
+plt.matshow(np.array(col_map), extent=[x_rot_range[0], x_rot_range[1], y_rot_range[0],y_rot_range[1]])#, vmin=0)
 plt.colorbar(label='Dist. Body to upper leg')
 plt.xlabel('Shoulder Y rot.')
 plt.ylabel('Shoulder X rot.')
-plt.scatter([t[0] for t in traj], [t[1] for t in traj], color='r', s=10)
+#plt.scatter([t[0] for t in traj], [t[1] for t in traj], color='r', s=10)
 #plt.scatter([t[0] for t in traj001], [t[1] for t in traj001], color='r', s=5)
 #plt.scatter([t[0] for t in traj002], [t[1] for t in traj002], color='r', s=2)
 
