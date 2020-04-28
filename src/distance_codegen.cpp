@@ -1,27 +1,11 @@
 #include <iosfwd>
-//#include <cppad/cg.hpp>
 #include <pinocchio/codegen/cppadcg.hpp>
 //not used
 //#include "pinocchio/utils/static-if.hpp"
+#include "segment_segment_distance.cpp"
 
 using namespace CppAD;
 using namespace CppAD::cg;
-
-// Testing purpose 
-/*
-template<typename Scalar>
-Scalar computeDistanceFromPoints(Scalar x0,
-                               Scalar y0, 
-                               Scalar z0,
-                               Scalar x1,
-                               Scalar y1, 
-                               Scalar z1){
-
-    Scalar distanceResult = (x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0) + (z1 - z0)*(z1 - z0);
-
-    return distanceResult;
-}
-*/
 
 template<typename Scalar>
 Scalar computeDistanceFromSegments(Scalar x10,
@@ -200,26 +184,68 @@ int main(void) {
     std::ostringstream code_jac;
     handler.generateCode(code_jac, langC, gen_jac, nameGen);
     
-    std::cout << "// Generated dist(x) :\n";
+    // Print the C code to the console
+    /*std::cout << "// Generated dist(x) :\n";
     std::cout << code.str();
-    //std::cout << "// Generated dist'(x) :\n";
-    //std::cout << code_jac.str();
+    std::cout << "// Generated dist'(x) :\n";
+    std::cout << code_jac.str();
+    */
 
-    /* Do a computation with the generated code
-    CppAD::vector<ADScalar> test_x(12);
-    test_x[0] = 0.;
-    test_x[1] = 0.;
-    test_x[2] = 0.;
-    test_x[3] = 1.;
-    test_x[4] = 1.;
-    test_x[5] = 1.;
-    test_x[6] = 0.;
-    test_x[7] = 0.;
-    test_x[8] = 2.;
-    test_x[9] = 0.;
-    test_x[10] = 0.;
-    test_x[11] = 3.;
+    /* Compile and test the generated code */
+    std::string func_name = "seg_seg_dist_cg";
+    std::string lib_name = func_name + "_lib";
+    // Initialize library
+    ModelCSourceGen<Scalar> cgen(fun, func_name);
+    cgen.setCreateForwardZero(true); // generates the function 
+    cgen.setCreateJacobian(false); // generates the jacobian
 
-    CppAD::vector<ADScalar> test_y(1);*/
+    ModelLibraryCSourceGen<Scalar> libcgen(cgen);
+    DynamicModelLibraryProcessor<Scalar> dynamicLibManager(libcgen, lib_name);
 
+    // Compile library
+    GccCompiler<Scalar> compiler;
+    std::vector<std::string> compile_options = compiler.getCompileFlags();
+    compile_options[0] = "-Ofast";
+    compiler.setCompileFlags(compile_options);
+    dynamicLibManager.createDynamicLibrary(compiler, false);
+    std::unique_ptr<DynamicLib<Scalar> > dynamicLib;
+
+    // Load library 
+    const auto it = dynamicLibManager.getOptions().find("dlOpenMode");
+    if(it == dynamicLibManager.getOptions().end()){
+        dynamicLib.reset(new LinuxDynamicLib<Scalar>(dynamicLibManager.getLibraryName() + cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION));
+    } else {
+        int dlOpenMode = std::stoi(it->second);
+        dynamicLib.reset(new LinuxDynamicLib<Scalar>(dynamicLibManager.getLibraryName() + cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION, dlOpenMode));
+    }
+
+    std::unique_ptr<GenericModel<Scalar> > genFun_ptr = dynamicLib->model(func_name.c_str());
+
+    
+    // Evaluate the function on an example :
+    std::vector<Scalar> test_x(12);
+    test_x[0] = -1;
+    test_x[1] = 2;
+    test_x[2] = 0.5;
+
+    test_x[3] = 1;
+    test_x[4] = 1.2;
+    test_x[5] = 0.7;
+    
+    test_x[6] = 0.2;
+    test_x[7] = -1;
+    test_x[8] = 2.5;
+    
+    test_x[9] = -4;
+    test_x[10] = 2.2;
+    test_x[11] = 3;
+
+    std::vector<Scalar> test_y(1);
+
+    // Original result
+    Scalar original_result = computeDistanceFromPoints<Scalar>(test_x[0],test_x[1],test_x[2],test_x[3],test_x[4],test_x[5],test_x[6],test_x[7],test_x[8],test_x[9],test_x[10],test_x[11]);
+    genFun_ptr->ForwardZero(test_x, test_y);
+
+    std::cout << "Original result : " << original_result << std::endl;
+    std::cout << "CG result : " << test_y[0] << std::endl;
 }
