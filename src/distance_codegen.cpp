@@ -1,24 +1,14 @@
-/* --------------------------------------------------------------------------
- *  CppADCodeGen: C++ Algorithmic Differentiation with Source Code Generation:
- *    Copyright (C) 2012 Ciengis
- *
- *  CppADCodeGen is distributed under multiple licenses:
- *
- *   - Eclipse Public License Version 1.0 (EPL1), and
- *   - GNU General Public License Version 3 (GPL3).
- *
- *  EPL1 terms and conditions can be found in the file "epl-v10.txt", while
- *  terms and conditions for the GPL3 can be found in the file "gpl3.txt".
- * ----------------------------------------------------------------------------
- * Author: Joao Leal
- */
 #include <iosfwd>
 //#include <cppad/cg.hpp>
 #include <pinocchio/codegen/cppadcg.hpp>
+//not used
+//#include "pinocchio/utils/static-if.hpp"
 
 using namespace CppAD;
 using namespace CppAD::cg;
 
+// Testing purpose 
+/*
 template<typename Scalar>
 Scalar computeDistanceFromPoints(Scalar x0,
                                Scalar y0, 
@@ -31,6 +21,7 @@ Scalar computeDistanceFromPoints(Scalar x0,
 
     return distanceResult;
 }
+*/
 
 template<typename Scalar>
 Scalar computeDistanceFromSegments(Scalar x10,
@@ -45,25 +36,26 @@ Scalar computeDistanceFromSegments(Scalar x10,
                                Scalar x21,
                                Scalar y21,
                                Scalar z21){
-    //Scalar distanceResult = INFINITY;
 
-    Scalar u0 = x11 - x10;
+    Scalar u0 = x11 - x10; // u : direction vector of 1st segment
     Scalar u1 = y11 - y10;
     Scalar u2 = z11 - z10;
-    Scalar v0 = x21 - x20;
+    Scalar v0 = x21 - x20; // v : direction vector of 2nd segment
     Scalar v1 = y21 - y20;
     Scalar v2 = z21 - z20;
-    Scalar w0 = x10 - x20;
+    Scalar w0 = x10 - x20; // w : direction between first endpoints of both segments
     Scalar w1 = y10 - y20;
     Scalar w2 = z10 - z20;
 
+    // Scalar products
     Scalar uTu = (u0*u0 + u1*u1 + u2*u2); 
     Scalar uTv = (u0*v0 + u1*v1 + u2*v2);
     Scalar vTv = (v0*v0 + v1*v1 + v2*v2);
     Scalar uTw = (u0*w0 + u1*w1 + u2*w2);
     Scalar vTw = (v0*w0 + v1*w1 + v2*w2);
 
-    // Solving denominators (den) and numerators (num)
+    // Solving for s (resp. t) on segment 1 (resp. 2)
+    // Initializing denominators (den) and numerators (num)
     Scalar den = uTu*vTv - uTv*uTv;
     Scalar s_den;
     Scalar t_den;
@@ -77,196 +69,79 @@ Scalar computeDistanceFromSegments(Scalar x10,
     Scalar DEN_THRESHOLD;
     DEN_THRESHOLD = 1e-9;
 
-    // For if tests
-    Scalar out0_if;
-    Scalar out1_if;
-    Scalar condZero;
-    condZero = 0.;
+    // For condExp tests
+    Scalar scalarZero;
+    Scalar scalarOne;
+    scalarZero = 0.;
+    scalarOne = 1;
 
     /*------------- Computing the closest points and shortest distance -------------*/
     // Parallel case
-    /*
-    if (den < DEN_THRESHOLD) {
-        s_num =  0 ;
-        s_den = 1 ;
-        t_num = vTw ;
-        t_den = vTv ;
-    }
-    else {
-        s_num = uTv*vTw - vTv*uTw ;
-        s_den = den;
-        t_num = uTu*vTw - uTv*uTw ;
-        t_den = den;
-    }*/
     // Conditional value of s_num (testing parallel case)
-    out1_if = 0;
-    out0_if = uTv*vTw - vTv*uTw ;
-    s_num = CondExpLt(den, DEN_THRESHOLD, out1_if, out0_if);
+    s_num = CondExpLt(den, DEN_THRESHOLD, scalarZero, uTv*vTw - vTv*uTw);
     // Conditional value of s_den (testing parallel case)
-    out1_if = 1;
-    out0_if = den;
-    s_den = CondExpLt(den, DEN_THRESHOLD, out1_if, out0_if);
+    s_den = CondExpLt(den, DEN_THRESHOLD, scalarOne, den);
     // Conditional value of t_num (testing parallel case)
-    out1_if = vTw;
-    out0_if = uTu*vTw - uTv*uTw ;
-    t_num = CondExpLt(den, DEN_THRESHOLD, out1_if, out0_if);
+    t_num = CondExpLt(den, DEN_THRESHOLD, vTw, uTu*vTw - uTv*uTw);
     // Conditional value of t_den (testing parallel case)
-    out1_if = vTv;
-    out0_if = den;
-    t_den = CondExpLt(den, DEN_THRESHOLD, out1_if, out0_if);
+    t_den = CondExpLt(den, DEN_THRESHOLD, vTv, den);
 
     // Check the constraint s in [0,1]
-    /*
-    if (s_num < 0) {
-        s_num = 0 ;     // constrain s to 0 
-        t_num = vTw ;
-        t_den = vTv ;
-    }
-    else if (s_num > s_den) {
-        s_num = s_den ;  // constrain s to 1
-        t_num = vTw + uTv ;
-        t_den = vTv ;
-    }*/
-
-    // Conditional value of s_num (testing constraint on s)
-    out1_if = 0;
-    out0_if = s_num;
-    s_num = CondExpLt(s_num, condZero, out1_if, out0_if);
-    out1_if = s_den;
-    out0_if = s_num;
-    s_num = CondExpGt(s_num, s_den, out1_if, out0_if);
-
     // Conditional value of t_num (testing constraint on s)
-    out1_if = vTw;
-    out0_if  = t_num;
-    t_num = CondExpLt(s_num, condZero, out1_if, out0_if);
-    out1_if = vTw + uTv;
-    out0_if = t_num;
-    t_num = CondExpGt(s_num, s_den, out1_if, out0_if);
+    t_num = CondExpLt(s_num, scalarZero, vTw, t_num);
+    t_num = CondExpGt(s_num, s_den, vTw + uTv, t_num);
 
     // Conditional value of t_den (testing constraint on s)
-    out1_if = vTv;
-    out0_if = t_den;
-    t_den = CondExpLt(s_num, condZero, out1_if, out0_if);
-    t_den = CondExpGt(s_num, s_den, out1_if, out0_if);
+    t_den = CondExpLt(s_num, scalarZero, vTv, t_den);
+    t_den = CondExpGt(s_num, s_den, vTv, t_den);
 
-
+    // Conditional value of s_num (testing constraint on s)
+    s_num = CondExpLt(s_num, scalarZero, scalarZero, s_num);
+    s_num = CondExpGt(s_num, s_den, s_den, s_num);
 
     // Check the constraint t in [0,1]
-    // REIMPLEMENTATION WITH CondExp TODO
-    /*if (t_num < 0){
-        t_num = 0 ;  // constrain t to 0 
-        // Re check constrain on s
-        if (-uTw < 0){
-            s_num = 0 ;
-        }
-        else if (-uTw > uTu) {
-            s_num = s_den ;
-        }
-        else {
-            s_num = -uTw ;
-            s_den = uTu ;
-        }
+    // Decision tree for s_num
+    Scalar s_num_A;
+    Scalar s_num_B;
+    Scalar s_num_C;
+    Scalar s_num_D;
+    Scalar s_num_E;
+    s_num_A = CondExpGt(-uTw + uTv, uTu, s_den, -uTw + uTv);
+    s_num_B = CondExpLt(-uTw + uTv, scalarZero, scalarZero, s_num_A);
+    s_num_C = CondExpGt(t_num, t_den, s_num_B, s_num);
+    s_num_D = CondExpGt(-uTw, uTu, s_den, -uTw);
+    s_num_E = CondExpLt(-uTw, scalarZero, scalarZero, s_num_D);
 
-        out1_if = 0;
-        out0_if = s_num;
-        s_num = CondExpLt(-uTw, condZero, out1_if, out0_if)
-        out1_if = s_den;
-        out0_if = -uTw;
-        s_num = CondExpGt(-uTw, uTu, out1_if, out0_if);
-        out1_if = s_den;
-        out0_if = uTu;
-        s_den = CondExpGt(-uTw, uTu, out1_if, out0_if);
-    }
-    else if (t_num > t_den) {
-        t_num = t_den ;  // constrain t to 1
-        if (-uTw + uTv < 0) {
-            s_num = 0 ;
-        }
-        else if ((-uTw + uTv) > uTu){
-            s_num = s_den ;
-        }
-        else {
-            s_num = -uTw + uTv ;
-            s_den = uTu ;
-        }
+    s_num = CondExpLt(t_num, scalarZero, s_num_E, s_num_C);
 
-        out1_if = 0;
-        out0_if = s_num;
-        s_num = CondExpLt(-uTw + uTv, condZero, out1_if, out0_if)
-        out1_if = s_den;
-        out0_if = -uTw + uTv;
-        s_num = CondExpGt(-uTw + uTv, uTu, out1_if, out0_if);
-        out1_if = s_den;
-        out0_if = uTu;
-        s_den = CondExpGt(-uTw + uTv, uTu, out1_if, out0_if);
-    }*/
+    // Decision tree for s_den
+    Scalar s_den_A;
+    Scalar s_den_B;
+    Scalar s_den_C;
+    Scalar s_den_D;
+    Scalar s_den_E;
+    s_den_A = CondExpGt(-uTw + uTv, uTu, s_den, uTu);
+    s_den_B = CondExpLt(-uTw + uTv, scalarZero, s_den, s_den_A);
+    s_den_C = CondExpGt(t_num, t_den, s_den_B, s_den);
+    s_den_D = CondExpGt(-uTw, uTu, s_den, uTu);
+    s_den_E = CondExpLt(-uTw, scalarZero, s_den, s_den_D);
 
-    out1_if = 0;
-    out0_if = t_num;
-    t_num = CondExpLt(t_num, condZero, out1_if, out0_if);
-    out1_if = t_den;
-    out0_if = t_num;
-    t_num = CondExpGt(t_num, t_den, out1_if, out0_if);
-    // Test against what should s be compared
-    Scalar s_comp;
-    s_comp = s_num;
+    s_den = CondExpLt(t_num, scalarZero, s_den_E, s_den_C);
 
-    out1_if = -uTw;
-    out0_if = s_num;
-    s_comp = CondExpLt(t_num, condZero, out1_if, out0_if);
-    out1_if = -uTw + uTv;
-    out0_if = s_num;
-    s_comp = CondExpGt(t_num, t_den, out1_if, out0_if);
-
-    out1_if = 0;
-    out0_if = s_num;
-    s_num = CondExpLt(s_comp, condZero, out1_if, out0_if);
-    out1_if = s_den;
-    out0_if = s_comp;
-    s_num = CondExpGt(s_comp, uTu, out1_if, out0_if);
-    out1_if = s_den;
-    out0_if = uTu;
-    s_den = CondExpGt(s_comp, uTu, out1_if, out0_if);
+    // Constrain t between 0 and 1
+    t_num = CondExpLt(t_num, scalarZero, scalarZero, t_num);
+    t_num = CondExpGt(t_num, t_den, t_den, t_num);
 
     // Final computation of s_closest, t_closest
-    /*
-    if(abs(s_num) < DEN_THRESHOLD){
-        s_closest = 0.;
-    }
-    else{
-        s_closest = s_num/s_den;
-    }*/
-    out1_if = 0.;
-    out0_if = s_num/s_den ;
-    s_closest = CondExpLt(abs(s_num), DEN_THRESHOLD, out1_if, out0_if);
-
-    /*
-    if(abs(t_num) < DEN_THRESHOLD){
-        t_closest = 0.;
-    }
-    else{
-        t_closest = t_num/t_den;
-    }*/
-    out1_if = 0.;
-    out0_if = t_num/t_den ;
-    t_closest = CondExpLt(abs(t_num), DEN_THRESHOLD, out1_if, out0_if);
-
-
-    //std::cout << s_closest << std::endl;
-    //std::cout << t_closest << std::endl;
+    s_closest = CondExpLt(abs(s_num), DEN_THRESHOLD, scalarZero, s_num/s_den);
+    t_closest = CondExpLt(abs(t_num), DEN_THRESHOLD, scalarZero, t_num/t_den);
 
     Scalar diff_at_closest_X = w0 + s_closest*u0 - t_closest*v0;
     Scalar diff_at_closest_Y = w1 + s_closest*u1 - t_closest*v1;
     Scalar diff_at_closest_Z = w2 + s_closest*u2 - t_closest*v2;
-
-    //std::cout << diff_at_closest_X << std::endl;
-    //std::cout << diff_at_closest_Y << std::endl;
-    //std::cout << diff_at_closest_Z << std::endl;
     
-    Scalar distanceResult = sqrt(diff_at_closest_X*diff_at_closest_X + diff_at_closest_Y*diff_at_closest_Y + diff_at_closest_Z*diff_at_closest_Z);
-
-    return distanceResult;
+    Scalar squaredDistanceResult = diff_at_closest_X*diff_at_closest_X + diff_at_closest_Y*diff_at_closest_Y + diff_at_closest_Z*diff_at_closest_Z;
+    return squaredDistanceResult;
     }
 
 
@@ -275,12 +150,9 @@ Scalar computeDistanceFromSegments(Scalar x10,
 
 
 int main(void) {
-    // use a special object for source code generation
-    //using CGD = CG<Scalar>;
-    //using ADCG = AD<CGD>;
-
+    // setting the Scalar template to represent doubles
     typedef double Scalar;
-
+    // use a special object for source code generation
     typedef CG<Scalar> CGScalar;
     typedef AD<CGScalar> ADScalar;
     typedef ADFun<CGScalar> ADFun;
@@ -288,31 +160,18 @@ int main(void) {
     /***************************************************************************
      *                               the model
      **************************************************************************/
-
+    // Independent vector x (input)
     CppAD::vector<ADScalar> x(12);
-    /*x[0] = 4.;
-    x[1] = 4.;
-    x[2] = 4.;
-    x[3] = 4.;
-    x[4] = 4.;
-    x[5] = 4.;
-    x[6] = 4.;
-    x[7] = 4.;
-    x[8] = 4.;
-    x[9] = 4.;
-    x[10] = 4.;
-    x[11] = 4.;*/
     Independent(x);
-
+    // Dependent vector y (output)
     CppAD::vector<ADScalar> y(1);
-    y[0] = 1;
 
-    //ADScalar a = computeDistanceFromPoints<ADScalar>(x[0],x[1],x[2],x[3],x[4],x[5]); 
     ADScalar a = computeDistanceFromSegments<ADScalar>(x[0],x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11]);
-
     y[0] = a;
 
     ADFun fun(x, y); // the model tape   
+    //fun.optimize();
+
 
     /***************************************************************************
      *                        Generate the C source code
@@ -343,8 +202,8 @@ int main(void) {
     
     std::cout << "// Generated dist(x) :\n";
     std::cout << code.str();
-    std::cout << "// Generated dist'(x) :\n";
-    std::cout << code_jac.str();
+    //std::cout << "// Generated dist'(x) :\n";
+    //std::cout << code_jac.str();
 
     /* Do a computation with the generated code
     CppAD::vector<ADScalar> test_x(12);
