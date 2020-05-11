@@ -119,3 +119,25 @@ def followBoundary(col_map, dist_threshold=0, first_dir=6):
                 counter += 1
         #print(traj)
         return traj[first_dir_change_index:]
+
+def colMapToDistField(col_map):
+        traj1 = np.array(followBoundary(col_map))
+        traj2 = np.array(followBoundary(col_map, first_dir=2))
+        traj = np.concatenate([traj1, traj2])
+        dist_field = []
+        for i in range(len(col_map)):
+                dist_field_j = []
+                for j in range(len(col_map)):
+                        curr_point_dist = float("inf")
+                        sign = 1
+                        for pt in traj:   
+                                d = (i - pt[1])**2 + (j - pt[0])**2
+                                if d < curr_point_dist:
+                                        curr_point_dist = d
+                                        if col_map[i,j] > 0:
+                                                sign = 1
+                                        else:
+                                                sign = -1
+                        dist_field_j.append(sign*np.sqrt(curr_point_dist))
+                dist_field.append(dist_field_j)
+        return dist_field
