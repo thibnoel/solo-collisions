@@ -12,6 +12,8 @@ SET(PROJECT_URL "https://github.com/${PROJECT_ORG}/${PROJECT_NAME}")
 # Project configuration
 SET(PROJECT_USE_CMAKE_EXPORT TRUE)
 
+SET(CMAKE_CXX_STANDARD 11)
+
 # JRL-cmakemodule setup
 INCLUDE(cmake/base.cmake)
 
