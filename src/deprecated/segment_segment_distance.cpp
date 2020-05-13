@@ -217,27 +217,27 @@ Scalar computeDistanceFromPoints(Scalar x10,
         }
     }
 
-    s_closest = (abs(s_num) < DEN_THRESHOLD ? 0.0 : s_num / s_den);
-    t_closest = (abs(t_num) < DEN_THRESHOLD ? 0.0 : t_num / t_den);
+    s_closest = (std::abs(s_num) < DEN_THRESHOLD ? 0.0 : s_num / s_den);
+    t_closest = (std::abs(t_num) < DEN_THRESHOLD ? 0.0 : t_num / t_den);
 
-    std::cout << s_closest << std::endl;
-    std::cout << t_closest << std::endl;
+    //std::cout << s_closest << std::endl;
+    //std::cout << t_closest << std::endl;
 
     //Eigen::Matrix<Scalar,3,1> diff_at_closest = w + s_closest*u - t_closest*v;
     Scalar diff_at_closest_X = w0 + s_closest*u0 - t_closest*v0;
     Scalar diff_at_closest_Y = w1 + s_closest*u1 - t_closest*v1;
     Scalar diff_at_closest_Z = w2 + s_closest*u2 - t_closest*v2;
 
-    std::cout << diff_at_closest_X << std::endl;
-    std::cout << diff_at_closest_Y << std::endl;
-    std::cout << diff_at_closest_Z << std::endl;
+    //std::cout << diff_at_closest_X << std::endl;
+    //std::cout << diff_at_closest_Y << std::endl;
+    //std::cout << diff_at_closest_Z << std::endl;
     
-    Scalar distanceResult = std::sqrt(diff_at_closest_X*diff_at_closest_X + diff_at_closest_Y*diff_at_closest_Y + diff_at_closest_Z*diff_at_closest_Z);
+    Scalar distanceResult = (diff_at_closest_X*diff_at_closest_X + diff_at_closest_Y*diff_at_closest_Y + diff_at_closest_Z*diff_at_closest_Z);
 
     return distanceResult;
     }
-/*
-int main(void) {
+
+/*int main(void) {
     typedef double Scalar;
 
     Eigen::Vector3d p10(0,0,0);
