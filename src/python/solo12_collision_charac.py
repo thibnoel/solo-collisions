@@ -102,14 +102,14 @@ def relativePlacement(q_robot, rmodel, frameIndex1, frameIndex2):
                 
 x_rot_range = [-np.pi, np.pi]
 y_rot_range = [-np.pi, np.pi]
-x_discrete_steps = 50
-y_discrete_steps = 50
+x_discrete_steps = 100
+y_discrete_steps = 100
 
 col_map, nearest_points_map = computeCollisionMap(robot_config, x_rot_range, y_rot_range, x_discrete_steps, y_discrete_steps, rmodel, rdata, gmodel, gdata)
 col_map = np.array(col_map)
 binary_col_map = np.array(col_map) > 0
 
-#np.save('./collision_map_extended_res200', col_map)
+#np.save('./collision_map_centered_res1000', col_map)
 
 traj = followBoundary(col_map, first_dir=0)
 #traj002 = followBoundary(col_map, dist_threshold=0.002)

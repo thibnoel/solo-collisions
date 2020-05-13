@@ -1,22 +1,26 @@
 import numpy as np 
 import matplotlib.pyplot as plt
-from solo12_collisions_utils import followBoundary
+from solo12_collisions_utils import followBoundary, colMapToDistField
 
 # Load the collision map from file
-col_map_file = './npy_data/collision_map_centered_res200.npy'
+res = 200
+col_map_file = './npy_data/collision_map_centered_res{}.npy'.format(res)
+dist_field_file = './npy_data/collision_map_distance_res{}.npy'.format(res)
 col_map = np.load(col_map_file, allow_pickle=True)
+col_map = col_map.T
+dist_field = np.load(dist_field_file, allow_pickle=True)
 
-traj1 = followBoundary(col_map)
-traj2 = followBoundary(col_map, first_dir=2)
+traj1 = followBoundary(col_map.T)
+traj2 = followBoundary(col_map.T, first_dir=2)
 traj2 = [traj2[-i] for i in range(len(traj2))]
 
 traj1X = np.array([t[0] for t in traj1])
 traj1Y = np.array([t[1] for t in traj1])
 
 traj2X = np.array([t[0] for t in traj2])
-#traj2Y = np.array([t[1] for t in traj2])
-traj2X = np.concatenate([traj2X, traj2X + len(traj2X), traj2X + 2*len(traj2X)])
-traj2Y = np.array(3*[t[1] for t in traj2])
+traj2Y = np.array([t[1] for t in traj2])
+#traj2X = np.concatenate([traj2X, traj2X + len(traj2X), traj2X + 2*len(traj2X)])
+#traj2Y = np.array(3*[t[1] for t in traj2])
 
 def approxFourier(trajX, trajY, Nh, plot=True):
     complexTraj = np.array(trajX + 1j*trajY)
@@ -51,7 +55,7 @@ def approxPolynom(trajX, trajY, deg, plot=True):
         #plt.plot(trajX, trajY)
         plt.plot(trajX, polynEval(trajX),linewidth=2, c='yellow',label="Polynom - deg. {}".format(deg))
     return [trajX, polynEval(trajX)]
-
+'''
 #print(traj2)
 #plt.subplot(2,2,1)
 #approxFourier(traj1, 50, plot=False)
@@ -60,10 +64,12 @@ def approxPolynom(trajX, trajY, deg, plot=True):
 #plt.subplot(2,2,3)
 plt.figure()
 plt.imshow(col_map)
-polynTraj1 = approxPolynom(traj1X, traj1Y, 50, plot=True)
-traj1X = np.concatenate([traj1X, traj1X + len(traj1X), traj1X + 2*len(traj1X)])
-traj1Y = np.array(3*[t[1] for t in traj1])
-fourierTraj1 = approxFourier(traj1X, traj1Y, 100, plot=True)
+plt.plot(traj1X, traj1Y, 'r')
+
+polynTraj1 = approxPolynom(traj1X, traj1Y, 101, plot=True)
+#traj1X = np.concatenate([traj1X, traj1X + len(traj1X), traj1X + 2*len(traj1X)])
+#traj1Y = np.array(3*[t[1] for t in traj1])
+#fourierTraj1 = approxFourier(traj1X, traj1Y, 10, plot=True)
 #fourierTraj2 = approxFourier(traj2X, traj2Y, 100, plot=True)
 #plt.subplot(2,2,4)
 
@@ -74,6 +80,29 @@ plt.title('Collision boundary approximation')
 plt.figure()
 plt.grid(True)
 plt.plot(traj1X, traj1Y + 2*len(col_map)/4)
-plt.plot(fourierTraj1.real[10:-10], fourierTraj1.imag[10:-10] + len(col_map)/4)
-plt.plot(polynTraj1[0] + fourierTraj1.real[int(len(fourierTraj1)/3)], polynTraj1[1])
+#plt.plot(fourierTraj1.real[10:-10], fourierTraj1.imag[10:-10] + len(col_map)/4)
+#plt.plot(polynTraj1[0] + fourierTraj1.real[int(len(fourierTraj1)/3)], polynTraj1[1])
+plt.plot(polynTraj1[0] , polynTraj1[1])
+plt.show()
+'''
+
+#dist_field = np.array(colMapToDistField(col_map.T))
+#np.save('./npy_data/collision_map_distance_res500', dist_field)
+
+plt.figure()
+plt.imshow(col_map.T)
+plt.plot(traj1X, traj1Y,'r')
+plt.plot(traj2X, traj2Y,'r')
+
+plt.figure()
+plt.imshow(dist_field, cmap=plt.cm.RdYlGn)
+#plt.plot(traj1X, traj1Y, 'r')
+#plt.plot(traj2X, traj2Y,'r')
+plt.colorbar(label='Dist. to boundary')
+
+plt.figure()
+#cumul_dist_field = (dist_field > 0).astype(float) + (dist_field > 10) + (dist_field > 20) + (dist_field > 30) + (dist_field > 40)
+cumul_dist_field = (dist_field > 0.1).astype(float) + (dist_field < -0.1)
+plt.imshow(cumul_dist_field)
+
 plt.show()
