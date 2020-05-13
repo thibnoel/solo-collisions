@@ -1,5 +1,6 @@
 #include <iostream>
 #include "relative-placement-codegen.hpp"
+#include "segment-segment-distance-codegen.hpp"
 
 using namespace pinocchio;
 
@@ -21,9 +22,15 @@ int main()
     int base_link = (int)rmodel.getFrameId("base_link");
 
     // Generate the code for the specified frames
-    std::string generatedCode = generateCSourceRelativePlacement(rmodel, base_link, fl_upper_leg);
+    std::string relPlacementGeneratedCode = generateCSourceRelativePlacement(rmodel, base_link, fl_upper_leg);
+
+    // Generate segment segment distance code
+    std::string segDistGeneratedCode = generateCSourceSegSegDist();
 
     // Print the C code to the console
-    std::cout << "// Generated rel placement(q) :\n";
-    std::cout << generatedCode;
+    std::cout << "// Generated rel_placement(q) :\n";
+    std::cout << relPlacementGeneratedCode << std::endl;
+
+    std::cout << "// Generated seg_seg_dist(seg1, seg2) :\n";
+    std::cout << segDistGeneratedCode << std::endl;
 }
