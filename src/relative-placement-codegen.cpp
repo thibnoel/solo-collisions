@@ -1,10 +1,12 @@
 #include <iosfwd>
-#include <pinocchio/codegen/cppadcg.hpp>
-#include <pinocchio/parsers/urdf.hpp>
+//#include <pinocchio/codegen/cppadcg.hpp>
+//#include <pinocchio/parsers/urdf.hpp>
 //#include <pinocchio/algorithm/joint-configuration.hpp>
-#include <pinocchio/algorithm/kinematics.hpp>
-#include <pinocchio/algorithm/frames.hpp>
-#include <iostream>
+//#include <pinocchio/algorithm/kinematics.hpp>
+//#include <pinocchio/algorithm/frames.hpp>
+//#include <iostream>
+
+#include "relative-placement-codegen.hpp"
 
 using namespace pinocchio;
 using namespace CppAD;
@@ -26,6 +28,56 @@ SE3Tpl<Scalar> relativePlacement(ModelTpl<Scalar> model, DataTpl<Scalar> data, E
 // in : x (size nq)
 // out : M (size 4x4) 
 
+std::string generateCSourceRelativePlacement(Model model, int frameInd1, int frameInd2)
+{
+    typedef double Scalar;
+    // Code gen. specific types
+    typedef CppAD::cg::CG<Scalar> CGScalar;
+    typedef CppAD::AD<CGScalar> ADScalar;
+    typedef CppAD::ADFun<CGScalar> ADFun;
+
+    // Cast the model to ADScalar type and regenerate the model data
+    ModelTpl<ADScalar> cast_rmodel = model.cast<ADScalar>(); 
+    DataTpl<ADScalar> cast_rdata(cast_rmodel);  
+
+    //*********Setting up code gen variables and function*********
+    // Initnialize AD input and output
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
+    ad_X.resize(cast_rmodel.nq);
+    ad_Y.resize(16);
+    CppAD::Independent(ad_X);
+    // Initialize AD function
+    ADFun ad_fun;
+    
+    // Record tape
+    SE3Tpl<ADScalar> result = relativePlacement<ADScalar>(cast_rmodel, cast_rdata, ad_X, frameInd1, frameInd2);
+    ad_Y = Eigen::Map<const Eigen::Matrix<ADScalar, 16, 1> >(result.toHomogeneousMatrix().data(),
+                                                         result.toHomogeneousMatrix().size());
+    ad_fun.Dependent(ad_X, ad_Y);
+
+    /***************************************************************************
+     *                        Generate the C source code
+     **************************************************************************/
+    CodeHandler<Scalar> handler;
+
+    CppAD::vector<CGScalar> indVars(cast_rmodel.nq); // size of x (Independent variable)
+    handler.makeVariables(indVars);
+
+    CppAD::vector<CGScalar> gen_fun = ad_fun.Forward(0, indVars);
+
+    // ??? Set parameters for code generation?
+    LanguageC<Scalar> langC("double");
+    LangCDefaultVariableNameGenerator<Scalar> nameGen;
+
+    // Generate function code
+    std::ostringstream code;
+    handler.generateCode(code, langC, gen_fun, nameGen);
+
+    return code.str();
+}
+
+/*
 int main(void) {
     typedef double Scalar;
     // Code gen. specific types
@@ -63,7 +115,7 @@ int main(void) {
     SE3Tpl<ADScalar> result = relativePlacement<ADScalar>(cast_rmodel, cast_rdata, ad_X, base_link, hr_lower_leg);
     ad_Y = Eigen::Map<const Eigen::Matrix<ADScalar, 16, 1> >(result.toHomogeneousMatrix().data(),
                                                          result.toHomogeneousMatrix().size());
-    ad_fun.Dependent(ad_X, ad_Y);
+    ad_fun.Dependent(ad_X, ad_Y);*/
 
     /***************************************************************************
      *                        Generate the C source code
@@ -72,7 +124,7 @@ int main(void) {
     /**
      * start the special steps for source code generation for a Jacobian
      */
-    CodeHandler<Scalar> handler;
+    /*CodeHandler<Scalar> handler;
 
     CppAD::vector<CGScalar> indVars(cast_rmodel.nq); // size of x (Independent variable)
     handler.makeVariables(indVars);
@@ -89,7 +141,7 @@ int main(void) {
 
     // Print the C code to the console
     std::cout << "// Generated rel placement(q) :\n";
-    std::cout << code.str();
+    std::cout << code.str();*/
 
     /***************************************************************************
      *                          Other method : create, compile
@@ -97,7 +149,7 @@ int main(void) {
      **************************************************************************/
 
     /* Compile and test the generated code */
-    std::string func_name = "rel_placement_cg";
+    /*std::string func_name = "rel_placement_cg";
     std::string lib_name = func_name + "_lib";
     // Initialize library
     ModelCSourceGen<Scalar> cgen(ad_fun, func_name);
@@ -144,4 +196,4 @@ int main(void) {
     std::cout << "Original result : " << test_y_or << std::endl;
     std::cout << "CG result : "  << std::endl;
     std::cerr<<Eigen::Map<const Eigen::Matrix<Scalar, 4, 4> >(test_y_cg.data())<<std::endl;
-}
+}*/
