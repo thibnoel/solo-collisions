@@ -1,7 +1,7 @@
 #include <iosfwd>
-//#include <pinocchio/codegen/cppadcg.hpp>
+#include <pinocchio/codegen/cppadcg.hpp>
 #include <pinocchio/parsers/urdf.hpp>
-#include <pinocchio/algorithm/joint-configuration.hpp>
+//#include <pinocchio/algorithm/joint-configuration.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <iostream>
@@ -17,6 +17,10 @@ SE3 relativePlacement(ModelTpl<Scalar> model, DataTpl<Scalar> data, Eigen::Vecto
     SE3 oMf2 = data.oMf[frameInd2];
     return oMf1.inverse() * oMf2;
 }
+// To generate : 
+// We want to get : Mrel = Fij(config) 
+// in : x (size nq)
+// out : M (size 4x4) 
 
 int main()
 {  
