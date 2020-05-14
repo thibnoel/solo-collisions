@@ -1,5 +1,4 @@
 #include <iosfwd>
-//#include <pinocchio/codegen/cppadcg.hpp>
 #include "codegen_helper.hpp"
 
 // Returns the shortest distance between 2 segments
@@ -127,6 +126,7 @@ Scalar segmentSegmentDistance_scalar(Scalar x10,
     return squaredDistanceResult;
 }
 
+// Generates the model for the function f(seg1, seg2) = min_dist(seg1,seg2)
 ADFun tapeADFunSegSegDist()
 {
     // CppAD model
@@ -140,6 +140,5 @@ ADFun tapeADFunSegSegDist()
         // the model tape   
     ADFun fun(x, y); 
 
-    //std::string code = generateCSourceCode(fun, 12);
     return fun;
 } 

@@ -45,9 +45,6 @@ void generateCompileCLib(std::string func_name, ADFun& fun)
      *                        Other method : create and compile
      *                           the C code on the flight
      **************************************************************************/
-
-    /* Compile and test the generated code */
-    //std::string func_name = "seg_seg_dist_cg";
     std::string lib_name = "libCG" + func_name;
     // Initialize library
     ModelCSourceGen<Scalar> cgen(fun, func_name);

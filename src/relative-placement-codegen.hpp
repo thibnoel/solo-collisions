@@ -1,7 +1,6 @@
 #include <pinocchio/parsers/urdf.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/frames.hpp>
-//#include <pinocchio/codegen/cppadcg.hpp>
 #include "codegen_helper.hpp"
 
 using namespace pinocchio;
@@ -18,7 +17,7 @@ pinocchio::SE3Tpl<Scalar> relativePlacement(pinocchio::ModelTpl<Scalar> model, p
     return oMf1.inverse() * oMf2;
 }
 
-// Generates the function f12(q) = f1Mf2 
+// Generates the model for the function f12(q) = f1Mf2 
 ADFun tapeADFunRelativePlacement(pinocchio::Model model, int frameInd1, int frameInd2)
 {
     // Cast the model to ADScalar type and regenerate the model data
@@ -40,8 +39,5 @@ ADFun tapeADFunRelativePlacement(pinocchio::Model model, int frameInd1, int fram
     ad_Y = Eigen::Map<const Eigen::Matrix<ADScalar, 16, 1> >(result.toHomogeneousMatrix().data(), result.toHomogeneousMatrix().size());
     ad_fun.Dependent(ad_X, ad_Y);
 
-    // Use helper function from codegen_helper.hpp
-    //std::string code = generateCSourceCode(ad_fun, cast_rmodel.nq);
-    //return code;
     return ad_fun;
 }
