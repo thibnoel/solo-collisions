@@ -35,6 +35,46 @@ std::string generateCSourceCode(ADFun& adFun, int xSize)
     return code.str();
 }
 
-void generateCompileCLib();
+// Takes in a taped ADFun and its name as a string, to generate and compile 
+// it on the fly under 'libCGfunc_name.so'
+void generateCompileCLib(std::string func_name, ADFun& fun)
+{
+    using namespace CppAD;
+    using namespace CppAD::cg;
+    /***************************************************************************
+     *                        Other method : create and compile
+     *                           the C code on the flight
+     **************************************************************************/
+
+    /* Compile and test the generated code */
+    //std::string func_name = "seg_seg_dist_cg";
+    std::string lib_name = "libCG" + func_name;
+    // Initialize library
+    ModelCSourceGen<Scalar> cgen(fun, func_name);
+    cgen.setCreateForwardZero(true); // generates the function 
+    cgen.setCreateJacobian(false); // generates the jacobian
+
+    ModelLibraryCSourceGen<Scalar> libcgen(cgen);
+    DynamicModelLibraryProcessor<Scalar> dynamicLibManager(libcgen, lib_name);
+
+    // Compile library
+    GccCompiler<Scalar> compiler;
+    std::vector<std::string> compile_options = compiler.getCompileFlags();
+    compile_options[0] = "-Ofast";
+    compiler.setCompileFlags(compile_options);
+    dynamicLibManager.createDynamicLibrary(compiler, false);
+    std::unique_ptr<DynamicLib<Scalar> > dynamicLib;
+
+    // Load library 
+    const auto it = dynamicLibManager.getOptions().find("dlOpenMode");
+    if(it == dynamicLibManager.getOptions().end()){
+        dynamicLib.reset(new LinuxDynamicLib<Scalar>(dynamicLibManager.getLibraryName() + cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION));
+    } else {
+        int dlOpenMode = std::stoi(it->second);
+        dynamicLib.reset(new LinuxDynamicLib<Scalar>(dynamicLibManager.getLibraryName() + cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION, dlOpenMode));
+    }
+    /*
+    std::unique_ptr<GenericModel<Scalar> > genFun_ptr = dynamicLib->model(func_name.c_str());*/
+}
 
 #endif

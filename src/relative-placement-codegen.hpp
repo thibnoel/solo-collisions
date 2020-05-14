@@ -19,7 +19,7 @@ pinocchio::SE3Tpl<Scalar> relativePlacement(pinocchio::ModelTpl<Scalar> model, p
 }
 
 // Generates the function f12(q) = f1Mf2 
-std::string generateCSourceRelativePlacement(pinocchio::Model model, int frameInd1, int frameInd2)
+ADFun tapeADFunRelativePlacement(pinocchio::Model model, int frameInd1, int frameInd2)
 {
     // Cast the model to ADScalar type and regenerate the model data
     ModelTpl<ADScalar> cast_rmodel = model.cast<ADScalar>(); 
@@ -41,6 +41,7 @@ std::string generateCSourceRelativePlacement(pinocchio::Model model, int frameIn
     ad_fun.Dependent(ad_X, ad_Y);
 
     // Use helper function from codegen_helper.hpp
-    std::string code = generateCSourceCode(ad_fun, cast_rmodel.nq);
-    return code;
+    //std::string code = generateCSourceCode(ad_fun, cast_rmodel.nq);
+    //return code;
+    return ad_fun;
 }

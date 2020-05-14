@@ -21,16 +21,18 @@ int main()
     int fl_upper_leg = (int)rmodel.getFrameId("FL_UPPER_LEG");
     int base_link = (int)rmodel.getFrameId("base_link");
 
-    // Generate the code for the specified frames
-    std::string relPlacementGeneratedCode = generateCSourceRelativePlacement(rmodel, base_link, fl_upper_leg);
+    // Generate the code for the specified frames and compile it as library
+    ADFun relPlacementFun = tapeADFunRelativePlacement(rmodel, base_link, fl_upper_leg);
+    generateCompileCLib("rel_placement",relPlacementFun);
 
-    // Generate segment segment distance code
-    std::string segDistGeneratedCode = generateCSourceSegSegDist();
+    // Generate segment segment distance code and compile it as library
+    ADFun segDistFun = tapeADFunSegSegDist();
+    generateCompileCLib("ssd",segDistFun);
 
     // Print the C code to the console
     std::cout << "// Generated rel_placement(q) :\n";
-    std::cout << relPlacementGeneratedCode << std::endl;
+    std::cout << generateCSourceCode(relPlacementFun, rmodel.nq) << std::endl;
 
     std::cout << "// Generated seg_seg_dist(seg1, seg2) :\n";
-    std::cout << segDistGeneratedCode << std::endl;
+    std::cout << generateCSourceCode(segDistFun, 12) << std::endl;
 }

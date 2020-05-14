@@ -127,7 +127,7 @@ Scalar segmentSegmentDistance_scalar(Scalar x10,
     return squaredDistanceResult;
 }
 
-std::string generateCSourceSegSegDist()
+ADFun tapeADFunSegSegDist()
 {
     // CppAD model
         // Independent vector x (input)
@@ -140,6 +140,6 @@ std::string generateCSourceSegSegDist()
         // the model tape   
     ADFun fun(x, y); 
 
-    std::string code = generateCSourceCode(fun, 12);
-    return code;
+    //std::string code = generateCSourceCode(fun, 12);
+    return fun;
 } 
