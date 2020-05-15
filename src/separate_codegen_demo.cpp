@@ -20,14 +20,22 @@ int main()
 
     // Get frames indices from the model
     int fl_upper_leg = (int)rmodel.getFrameId("FL_UPPER_LEG");
+    int hr_lower_leg = (int)rmodel.getFrameId("HR_LOWER_LEG");
     int base_link = (int)rmodel.getFrameId("base_link");
 
     // Generate the code for the specified frames and compile it as library
-    ADFun relPlacementFun = tapeADFunRelativePlacement(rmodel, base_link, fl_upper_leg);
-    generateCompileCLib("rel_placement",relPlacementFun);
+    ADFun relPlacementFun1 = tapeADFunRelativePlacement(rmodel, base_link, fl_upper_leg);
+    generateCompileCLib("rel_placement",relPlacementFun1);
     // Print the C code to the console
-    std::cout << "// Generated rel_placement(q) :\n";
-    std::cout << generateCSourceCode(relPlacementFun, rmodel.nq) << std::endl;
+    std::cout << "// Generated rel_placement(q) for frames BASE_LINK and FL_UPPER_LEG :\n";
+    std::cout << generateCSourceCode(relPlacementFun1, rmodel.nq) << std::endl;
+
+    // One more example, with another collision pair
+    ADFun relPlacementFun2 = tapeADFunRelativePlacement(rmodel, hr_lower_leg, fl_upper_leg);
+    generateCompileCLib("rel_placement",relPlacementFun2);
+    // Print the C code to the console
+    std::cout << "// Generated rel_placement(q) for frames HR_LOWER_LEG and FL_UPPER_LEG :\n";
+    std::cout << generateCSourceCode(relPlacementFun2, rmodel.nq) << std::endl;
 
     /*************************** Segment-segment dist. code generation *****************************/
     // Generate segment segment distance code and compile it as library

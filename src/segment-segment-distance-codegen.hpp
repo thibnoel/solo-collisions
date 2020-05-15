@@ -132,7 +132,7 @@ ADFun tapeADFunSegSegDist()
     // CppAD model
         // Independent vector x (input)
     CppAD::vector<ADScalar> x(12);
-    Independent(x);
+    CppAD::Independent(x);
         // Dependent vector y (output)
     CppAD::vector<ADScalar> y(1);
     ADScalar a = segmentSegmentDistance_scalar<ADScalar>(x[0],x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11]);
