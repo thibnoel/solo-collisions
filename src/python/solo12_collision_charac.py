@@ -30,38 +30,6 @@ if(enableGUI):
                         gv.setColor(n, [1,0.5,0.2,1])
                         gv.setVisibility(n,'OFF')
         gv.refresh()
-'''
-# Get robot model, data, and collision model
-rmodel = robot.model
-rdata  = rmodel.createData()
-gmodel = robot.collision_model
-#print("Geometric model : \n" + str(gmodel))
-#print("Robot model : \n" + str(rmodel))
-
-# Define the robot configuration
-
-
-# Get the robot frames we're interested in
-fl_upper_leg = rmodel.getFrameId("FL_UPPER_LEG")
-fl_lower_leg = rmodel.getFrameId("FL_LOWER_LEG")
-fr_upper_leg = rmodel.getFrameId("FR_UPPER_LEG")
-fr_lower_leg = rmodel.getFrameId("FR_LOWER_LEG")
-hl_upper_leg = rmodel.getFrameId("HL_UPPER_LEG")
-hl_lower_leg = rmodel.getFrameId("HL_LOWER_LEG")
-hr_upper_leg = rmodel.getFrameId("HR_UPPER_LEG")
-hr_lower_leg = rmodel.getFrameId("HR_LOWER_LEG")
-base_link = rmodel.getFrameId("base_link")
-
-# Get the base_link and FL_UPPER_LEG meshes
-base_link_geom = gmodel.getGeometryId("base_link_0")
-fl_upper_geom = gmodel.getGeometryId("FL_UPPER_LEG_0")
-# Add the collision pair to the geometric model
-gmodel.addCollisionPair(pio.CollisionPair(base_link_geom, fl_upper_geom))
-
-if(enableGUI):
-        
-gdata = gmodel.createData()
-'''
 
 def updateShoulderConfig(x,y):
         robot_config[7] = x
@@ -88,17 +56,6 @@ def visualizeCollisionDist(p1, p2, name, color):
         M2 = pio.SE3(pio.Quaternion.FromTwoVectors(np.matrix([0,0,1]).T,p2-p1).matrix(),p2-direc*capsule_radius)
         gv.applyConfiguration('world/pinocchio/collisions/simple_patch_' + name + '_0',pio.SE3ToXYZQUATtuple(M1))
         gv.applyConfiguration('world/pinocchio/collisions/simple_patch_' + name + '_1',pio.SE3ToXYZQUATtuple(M2))
-
-'''
-def relativePlacement(q_robot, rmodel, frameIndex1, frameIndex2):
-        robot_config = q_robot
-        oMf1 = rmodel.frames[frameIndex1].placement.toHomogeneousMatrix_impl()
-        print(oMf1)
-        oMf2 = rmodel.frames[frameIndex2].placement
-        print(oMf2)
-        f1Mf2 = np.linalg.inv(oMf1).dot(oMf2)
-        return f1Mf2
-'''
                 
 x_rot_range = [-np.pi, np.pi]
 y_rot_range = [-np.pi, np.pi]

@@ -15,9 +15,9 @@ def initSolo():
 
     # Get the base_link and FL_UPPER_LEG meshes
     base_link_geom = gmodel.getGeometryId("base_link_0")
-    fl_upper_geom = gmodel.getGeometryId("FL_UPPER_LEG_0")
+    leg_geom = gmodel.getGeometryId("FR_UPPER_LEG_0")
     # Add the collision pair to the geometric model
-    gmodel.addCollisionPair(pio.CollisionPair(base_link_geom, fl_upper_geom))
+    gmodel.addCollisionPair(pio.CollisionPair(base_link_geom, leg_geom))
 
     gdata = gmodel.createData()
     return robot, rmodel, rdata, gmodel, gdata

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from solo12_collisions_utils import followBoundary, colMapToDistField
 
 # Load the collision map from file
-res = 200
+res = 100
 col_map_file = './npy_data/collision_map_centered_res{}.npy'.format(res)
 dist_field_file = './npy_data/collision_map_distance_res{}.npy'.format(res)
 col_map = np.load(col_map_file, allow_pickle=True)
