@@ -3,7 +3,7 @@
 
 // Returns the shortest distance between 2 segments
 template<typename Scalar>
-Scalar segmentSegmentDistance_scalar(Scalar x10,
+Scalar segmentSegmentSqrDistance_scalar(Scalar x10,
                                Scalar y10, 
                                Scalar z10,
                                Scalar x11,
@@ -135,7 +135,7 @@ ADFun tapeADFunSegSegDist()
     CppAD::Independent(x);
         // Dependent vector y (output)
     CppAD::vector<ADScalar> y(1);
-    ADScalar a = segmentSegmentDistance_scalar<ADScalar>(x[0],x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11]);
+    ADScalar a = segmentSegmentSqrDistance_scalar<ADScalar>(x[0],x[1],x[2],x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11]);
     y[0] = a;
         // the model tape   
     ADFun fun(x, y); 

@@ -60,9 +60,10 @@ void generateCompileCLib(std::string func_name, ADFun& fun)
     compile_options[0] = "-Ofast";
     compiler.setCompileFlags(compile_options);
     dynamicLibManager.createDynamicLibrary(compiler, false);
-    std::unique_ptr<DynamicLib<Scalar> > dynamicLib;
+    //std::unique_ptr<DynamicLib<Scalar> > dynamicLib;
 
     // Load library 
+    /*
     const auto it = dynamicLibManager.getOptions().find("dlOpenMode");
     if(it == dynamicLibManager.getOptions().end()){
         dynamicLib.reset(new LinuxDynamicLib<Scalar>(dynamicLibManager.getLibraryName() + cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION));
@@ -70,7 +71,7 @@ void generateCompileCLib(std::string func_name, ADFun& fun)
         int dlOpenMode = std::stoi(it->second);
         dynamicLib.reset(new LinuxDynamicLib<Scalar>(dynamicLibManager.getLibraryName() + cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION, dlOpenMode));
     }
-    /*
+    
     std::unique_ptr<GenericModel<Scalar> > genFun_ptr = dynamicLib->model(func_name.c_str());*/
 }
 
