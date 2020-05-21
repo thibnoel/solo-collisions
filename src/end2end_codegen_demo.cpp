@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <iostream>
 #include "end2end_legs_collision_check.hpp"
-
+#include <chrono> 
+using namespace std::chrono; 
 using namespace pinocchio;
 
-// For now, this main only generates the relative placement code as a string and prints it to the console
 int main(int argc, char* argv[])
 {
 
@@ -39,14 +39,14 @@ int main(int argc, char* argv[])
         // Geometry
     ADScalar capsLength;
     ADScalar capsRadius;
-    capsLength = 2;
+    capsLength = 0.2;
     capsRadius = 0.02;
         // Capsule frame : offset between leg frame and 1 end of the capsule
         // Translation
     Eigen::Matrix<ADScalar, 3, 1> capsPosOffset;
     capsPosOffset[0] = 0;
     capsPosOffset[1] = 0;
-    capsPosOffset[2] = -0.5*capsLength;
+    capsPosOffset[2] = 0;
         // Rotation
     Eigen::Quaternion<ADScalar> capsRotOffset;
     capsRotOffset.setIdentity();
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
     pinocchio::SE3Tpl<ADScalar> capsFrame(capsRotOffset, capsPosOffset);
     
 
-    // Generate the code for the specified frames and compile it as library
+    // Generate the code for the specified frames and capsule parameters, and compile it as library
     ADFun genFun = tapeADFunEnd2End(rmodel, hr_lower_leg, fl_upper_leg, capsLength, capsRadius, capsFrame);
     generateCompileCLib("end2end_" + frame1Name + frame2Name,genFun);
     // Print the C code to the console
@@ -72,9 +72,10 @@ int main(int argc, char* argv[])
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
     std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("end2end_" + frame1Name + frame2Name);
 
-    // Generated code result
+    // Generated code evaluation
     Eigen::Matrix<double, Eigen::Dynamic, 1> X_test;
     X_test.resize(rmodel.nq);
+        // Input : robot configuration
     X_test[0] = 0;
     X_test[1] = 0;
     X_test[2] = 0;
@@ -87,12 +88,19 @@ int main(int argc, char* argv[])
     X_test[9] = 0;
     X_test[10] = 0;
     X_test[11] = 0;
+        // Output : distance
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;
     Y_test.resize(1);
     
+    // Function evaluation with start and stop timestamps
+    auto start = high_resolution_clock::now();
     model->ForwardZero(X_test, Y_test);
+    auto stop = high_resolution_clock::now(); 
+    auto duration = duration_cast<nanoseconds>(stop - start); 
+
+    // Print output
     std::cout << "X = \n" << X_test << std::endl;
     std::cout << "\tDist. result : " << Y_test << std::endl;
-
+    std::cout << "Time taken by function: " << duration.count() << " nanoseconds" << std::endl; 
 
 }

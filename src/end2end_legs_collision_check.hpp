@@ -20,7 +20,7 @@ Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model, pinocchio::DataTpl<Scal
     capsDirVec[0] = 0;
     capsDirVec[1] = 0;
     capsDirVec[2] = capsLength;
-    capsDirVec[3] = 0;
+    capsDirVec[3] = 1;
 
     // Get and resize relative placement between f1, f2
     pinocchio::SE3Tpl<Scalar> f1Mf2 = relativePlacement<Scalar>(model, data, config, frameInd1, frameInd2);
@@ -43,6 +43,7 @@ Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model, pinocchio::DataTpl<Scal
     caps0Pos0[2] = 0;
     caps0Pos0[3] = 1;
 
+    caps0Pos0 << Mcaps*caps0Pos0;
     caps0Pos1 << caps0Pos0 + Mcaps*capsDirVec;
     caps1Pos0 << M*caps0Pos0;
     caps1Pos1 << M*caps0Pos1;
