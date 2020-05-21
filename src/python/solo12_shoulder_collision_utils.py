@@ -15,14 +15,14 @@ def initSolo():
 
     # Get the base_link and FL_UPPER_LEG meshes
     base_link_geom = gmodel.getGeometryId("base_link_0")
-    leg_geom = gmodel.getGeometryId("FR_UPPER_LEG_0")
+    leg_geom = gmodel.getGeometryId("FL_UPPER_LEG_0")
     # Add the collision pair to the geometric model
     gmodel.addCollisionPair(pio.CollisionPair(base_link_geom, leg_geom))
 
     gdata = gmodel.createData()
     return robot, rmodel, rdata, gmodel, gdata
 
-def testGeomConfig(config, x_rot, y_rot, collisionPair, rmodel, rdata, gmodel, gdata):
+def testShoulderGeomConfig(config, x_rot, y_rot, collisionPair, rmodel, rdata, gmodel, gdata):
         test_config = config.copy()
 
         test_config[7] = x_rot
@@ -50,7 +50,7 @@ def computeCollisionMap(config, x_rot_range, y_rot_range, xsteps, ysteps, rmodel
                 i_col_map = []
                 i_nearest_points_map = []
                 for j in range(xsteps):
-                        colTest = testGeomConfig(config, x_rot_range[0] + j*(x_rot_range[1] - x_rot_range[0])/xsteps, y_rot_range[0] + i*(y_rot_range[1] - y_rot_range[0])/ysteps, 0, rmodel, rdata, gmodel, gdata)
+                        colTest = testShoulderGeomConfig(config, x_rot_range[0] + j*(x_rot_range[1] - x_rot_range[0])/xsteps, y_rot_range[0] + i*(y_rot_range[1] - y_rot_range[0])/ysteps, 0, rmodel, rdata, gmodel, gdata)
                         i_col_map.append(colTest[1])
                         i_nearest_points_map.append(colTest[2])
                 col_map.append(i_col_map)

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from numpy.linalg import norm
-from solo12_collisions_utils import initSolo, testGeomConfig, computeCollisionMap, followBoundary
+from solo12_shoulder_collision_utils import initSolo, testShoulderGeomConfig, computeCollisionMap, followBoundary
 
 robot, rmodel, rdata, gmodel, gdata = initSolo()
 robot_config = np.zeros(robot.q0.shape) # Default configuration
