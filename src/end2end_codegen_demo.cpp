@@ -42,8 +42,8 @@ int main(int argc, char* argv[])
         // Geometry
     ADScalar capsLength;
     ADScalar capsRadius;
-    double fcl_capsRad = 0.2;
-    double fcl_capsLen = 0.02;
+    double fcl_capsRad = 0.02;
+    double fcl_capsLen = 0.2;
     capsLength = 0.2;
     capsRadius = 0.02;
         // Capsule frame : offset between leg frame and 1 end of the capsule
@@ -95,21 +95,16 @@ int main(int argc, char* argv[])
     X_test[3] = 0;
     X_test[4] = 0;
     X_test[5] = 0;
-    X_test[6] = 0;
+    X_test[6] = 1;
     X_test[7] = 0;
     X_test[8] = 0;
     X_test[9] = 0;
     X_test[10] = 0;
     X_test[11] = 0;
+
         // Output : distance
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;
     Y_test.resize(1);
-
-        // FCL check (NOT 100% RELIABLE YET)
-    auto start_fcl = high_resolution_clock::now();
-    double fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, fcl_capsLen, fcl_capsRad);//, fcl_capsFrame);
-    auto stop_fcl = high_resolution_clock::now(); 
-    auto duration_fcl = duration_cast<nanoseconds>(stop_fcl - start_fcl);
 
     // Function evaluation with start and stop timestamps
     auto start_cg = high_resolution_clock::now();
@@ -117,11 +112,17 @@ int main(int argc, char* argv[])
     auto stop_cg = high_resolution_clock::now(); 
     auto duration_cg = duration_cast<nanoseconds>(stop_cg - start_cg); 
 
+        // FCL check 
+    auto start_fcl = high_resolution_clock::now();
+    double fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, fcl_capsLen, fcl_capsRad, fcl_capsFrame);
+    auto stop_fcl = high_resolution_clock::now(); 
+    auto duration_fcl = duration_cast<microseconds>(stop_fcl - start_fcl);
+
     // Print output
     std::cout << "X = \n" << X_test << std::endl;
     std::cout << "\tDist. result (codegen): " << Y_test << std::endl;
     std::cout << "Time taken by function: " << duration_cg.count() << " nanoseconds" << std::endl; 
     std::cout << "\tDist. result (FCL): " << fcl_dist << std::endl;
-    std::cout << "Time taken by function: " << duration_fcl.count() << " nanoseconds" << std::endl;
+    std::cout << "Time taken by function: " << duration_fcl.count() << " microseconds" << std::endl;
 
 }
