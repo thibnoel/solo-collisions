@@ -18,15 +18,42 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::string frame1Name = argv[1];
-    std::string frame2Name = argv[2];
+    // Initialize frame names
+    const std::string frame1Name = argv[1];
+    const std::string frame2Name = argv[2];
+
+    // Capsule geometry
+    const double CAPSULE_LENGTH = 0.2;
+    const double CAPSULE_RADIUS = 0.02;
+
+    // Initialize capsules placements :
+        // Each of the capsule has to be placed and oriented in its leg frame
+        // Translations
+    Eigen::Matrix<double, 3, 1> FRAME1_TO_CAPS1_TRANSLATION;
+    FRAME1_TO_CAPS1_TRANSLATION[0] = 0;
+    FRAME1_TO_CAPS1_TRANSLATION[1] = 0;
+    FRAME1_TO_CAPS1_TRANSLATION[2] = 0;
+
+    Eigen::Matrix<double, 3, 1> FRAME2_TO_CAPS2_TRANSLATION;
+    FRAME2_TO_CAPS2_TRANSLATION[0] = 0;
+    FRAME2_TO_CAPS2_TRANSLATION[1] = 0;
+    FRAME2_TO_CAPS2_TRANSLATION[2] = 0;
+        // Rotations
+    Eigen::Quaternion<double> FRAME1_TO_CAPS1_ROTATION;
+    FRAME1_TO_CAPS1_ROTATION.setIdentity();
+
+    Eigen::Quaternion<double> FRAME2_TO_CAPS2_ROTATION;
+    FRAME2_TO_CAPS2_ROTATION.setIdentity();
+        // Initialize SE3 objects
+    const pinocchio::SE3 f1Mcaps1(FRAME1_TO_CAPS1_ROTATION, FRAME1_TO_CAPS1_TRANSLATION);
+    const pinocchio::SE3 f2Mcaps2(FRAME2_TO_CAPS2_ROTATION, FRAME2_TO_CAPS2_TRANSLATION);
 
     // Load Solo 12 model
         // Setup URDF path
     const std::string urdf_filename = "/opt/openrobots/share/example-robot-data/robots/solo_description/robots/solo12.urdf";
     const std::string robots_model_path = "/opt/openrobots/share/example-robot-data/robots";// PINOCCHIO_MODEL_DIR + std::string("/others/robots/"); 
 
-        // Load and build the URDF model
+        // Load and build the Model and GeometryModel from URDF 
     Model rmodel;
     GeometryModel gmodel;
     pinocchio::urdf::buildModel(urdf_filename,rmodel);
@@ -35,40 +62,21 @@ int main(int argc, char* argv[])
     Data rdata(rmodel); 
 
     // Get frames indices from the model
-    int frameInd1 = (int)rmodel.getFrameId(frame1Name);
-    int frameInd2 = (int)rmodel.getFrameId(frame2Name);
+    const int frameInd1 = (int)rmodel.getFrameId(frame1Name);
+    const int frameInd2 = (int)rmodel.getFrameId(frame2Name);
 
-    // Define capsule parameters
+    // Define AD parameters
         // Geometry
-    ADScalar capsLength;
-    ADScalar capsRadius;
-    double fcl_capsRad = 0.02;
-    double fcl_capsLen = 0.2;
-    capsLength = 0.2;
-    capsRadius = 0.02;
-        // Capsule frame : offset between leg frame and 1 end of the capsule
-        // Translation
-    Eigen::Matrix<ADScalar, 3, 1> capsPosOffset;
-    Eigen::Matrix<double, 3, 1> fcl_capsPosOffset;
-    capsPosOffset[0] = 0;
-    capsPosOffset[1] = 0;
-    capsPosOffset[2] = 0;
-
-    fcl_capsPosOffset[0] = 0;
-    fcl_capsPosOffset[1] = 0;
-    fcl_capsPosOffset[2] = 0;
-        // Rotation
-    Eigen::Quaternion<ADScalar> capsRotOffset;
-    Eigen::Quaternion<double> fcl_capsRotOffset;
-    capsRotOffset.setIdentity();
-    fcl_capsRotOffset.setIdentity();
-        // SE3 object
-    pinocchio::SE3Tpl<ADScalar> capsFrame(capsRotOffset, capsPosOffset);
-    pinocchio::SE3Tpl<double> fcl_capsFrame(fcl_capsRotOffset, fcl_capsPosOffset);
+    ADScalar ad_capsLength;
+    ADScalar ad_capsRadius;
+    ad_capsLength = CAPSULE_LENGTH;
+    ad_capsRadius = CAPSULE_RADIUS;    
+        // SE3 objects
+    pinocchio::SE3Tpl<ADScalar> ad_f1Mcaps1(FRAME1_TO_CAPS1_ROTATION, FRAME1_TO_CAPS1_TRANSLATION);
+    pinocchio::SE3Tpl<ADScalar> ad_f2Mcaps2(FRAME2_TO_CAPS2_ROTATION, FRAME2_TO_CAPS2_TRANSLATION);
     
-
     // Generate the code for the specified frames and capsule parameters, and compile it as library
-    ADFun genFun = tapeADFunEnd2End(rmodel, frameInd1, frameInd2, capsLength, capsRadius, capsFrame);
+    ADFun genFun = tapeADFunEnd2End(rmodel, frameInd1, frameInd2, ad_capsLength, ad_capsRadius, ad_f1Mcaps1, ad_f2Mcaps2);
     generateCompileCLib("end2end_" + frame1Name + frame2Name,genFun);
     // Print the C code to the console
     std::cout << "---- CODE GENERATION ----" << std::endl;
@@ -95,12 +103,16 @@ int main(int argc, char* argv[])
     X_test[3] = 0;
     X_test[4] = 0;
     X_test[5] = 0;
-    X_test[6] = 1;
+    X_test[6] = 0;
     X_test[7] = 0;
     X_test[8] = 0;
     X_test[9] = 0;
     X_test[10] = 0;
     X_test[11] = 0;
+
+        // Get a random config.
+    srand((unsigned int) time(0));
+    //X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
 
         // Output : distance
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;
@@ -114,15 +126,38 @@ int main(int argc, char* argv[])
 
         // FCL check 
     auto start_fcl = high_resolution_clock::now();
-    double fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, fcl_capsLen, fcl_capsRad, fcl_capsFrame);
+    double fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, CAPSULE_LENGTH, CAPSULE_RADIUS, f1Mcaps1, f2Mcaps2);
     auto stop_fcl = high_resolution_clock::now(); 
     auto duration_fcl = duration_cast<microseconds>(stop_fcl - start_fcl);
 
     // Print output
     std::cout << "X = \n" << X_test << std::endl;
     std::cout << "\tDist. result (codegen): " << Y_test << std::endl;
-    std::cout << "Time taken by function: " << duration_cg.count() << " nanoseconds" << std::endl; 
+    std::cout << "Time taken by function: " << ((int)duration_cg.count())*0.001 << " microseconds" << std::endl; 
     std::cout << "\tDist. result (FCL): " << fcl_dist << std::endl;
     std::cout << "Time taken by function: " << duration_fcl.count() << " microseconds" << std::endl;
+    std::cout << "\n" << std::endl;
+    std::cout << "Dist. error = " << std::abs(fcl_dist - Y_test[0]) << std::endl;
+
+    // TO MOVE IN UNIT TEST
+
+        // Test on n random configurations
+    int n = 100;
+    double max_dist_err = 0;
+    double dist_err;
+    for(int k=0; k<n; k++)
+    {
+        X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+
+        model->ForwardZero(X_test, Y_test);
+        fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, CAPSULE_LENGTH, CAPSULE_RADIUS, f1Mcaps1, f2Mcaps2);
+
+        dist_err = std::abs(fcl_dist - Y_test[0]);
+        if(dist_err > max_dist_err)
+        {
+            max_dist_err = dist_err;
+        }
+    }
+    std::cout << "Max error from " << n << " random config. evaluations : " << max_dist_err << std::endl;
 
 }

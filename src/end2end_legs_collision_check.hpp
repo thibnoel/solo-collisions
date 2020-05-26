@@ -21,7 +21,8 @@ Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model,
                       int frameInd2,
                       Scalar capsLength,
                       Scalar capsRadius,
-                      pinocchio::SE3Tpl<Scalar> f1Mcaps)
+                      pinocchio::SE3Tpl<Scalar> f1Mcaps1,
+                      pinocchio::SE3Tpl<Scalar> f2Mcaps2)
 {
     // Define capsule directing vector
     Eigen::Matrix<Scalar, 3, 1> capsDirVec;
@@ -45,10 +46,12 @@ Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model,
 
     caps0Pos1 << caps0Pos0 + capsDirVec;
 
-    caps0Pos0 << f1Mcaps.actInv(caps0Pos0);
-    caps0Pos1 << f1Mcaps.actInv(caps0Pos1);
-    caps1Pos0 << f1Mf2.act(caps0Pos0);
-    caps1Pos1 << f1Mf2.act(caps0Pos1);
+    caps0Pos0 << f1Mcaps1.act(caps0Pos0);
+    caps0Pos1 << f1Mcaps1.act(caps0Pos1);
+    caps1Pos0 << f1Mf2.actInv(caps0Pos0);
+    caps1Pos1 << f1Mf2.actInv(caps0Pos1);
+    caps1Pos0 << f2Mcaps2.actInv(caps1Pos0);
+    caps1Pos1 << f2Mcaps2.actInv(caps1Pos1);
 
     // Compute min. distance between capsules segments minus capsules radii 
     return CppAD::sqrt(segmentSegmentSqrDistance_scalar<Scalar>(caps0Pos0[0], caps0Pos0[1], caps0Pos0[2],
@@ -59,6 +62,7 @@ Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model,
     
 }
 
+// Helper function : returns the jMf SE3 placement given a frame f, j being its parent joint
 pinocchio::SE3 jointToFrameRelativePlacement(pinocchio::Model model, pinocchio::Data data, Eigen::Matrix<double, Eigen::Dynamic, 1>& config, int frameInd)
 {
     forwardKinematics(model, data, config);
@@ -77,7 +81,8 @@ double getFCLResult(pinocchio::Model& model,
                     std::string frameName2, 
                     double capsLength,
                     double capsRadius,
-                    pinocchio::SE3 f1Mcaps)
+                    pinocchio::SE3 f1Mcaps1,
+                    pinocchio::SE3 f2Mcaps2)
 {
     typedef boost::shared_ptr< fcl::CollisionGeometry > CollisionGeometryPtr;
 
@@ -85,8 +90,8 @@ double getFCLResult(pinocchio::Model& model,
     pinocchio::FrameIndex frameInd1 = model.getFrameId(frameName1);
     pinocchio::FrameIndex frameInd2 = model.getFrameId(frameName2);
 
-    // Offset f1Mcaps to an end of the capsule
-    // Do the same for caps2
+    // Offset f1Mcaps1 to an end of the capsule
+    // TODO : Do the same for caps2 (f2Mcaps as arg)
         // Translation
     Eigen::Matrix<double, 3, 1> capsPosOffset;
     capsPosOffset[0] = 0;
@@ -97,33 +102,40 @@ double getFCLResult(pinocchio::Model& model,
     capsRotOffset.setIdentity();
         // SE3 object
 
-    pinocchio::SE3 capsFrame(capsRotOffset, capsPosOffset);
-    capsFrame = f1Mcaps.act(capsFrame);
+    pinocchio::SE3 capsFrame1(capsRotOffset, capsPosOffset);
+    capsFrame1 = f1Mcaps1.act(capsFrame1);
+
+    pinocchio::SE3 capsFrame2(capsRotOffset, capsPosOffset);
+    capsFrame2 = f2Mcaps2.act(capsFrame2);
+
     pinocchio::SE3 j1Mframe1 = jointToFrameRelativePlacement(model, data, config, (int)frameInd1);
     pinocchio::SE3 j2Mframe2 = jointToFrameRelativePlacement(model, data, config, (int)frameInd2);
-    //f1Mcaps = f1Mcaps.act(capsFrame);
 
-    const CollisionGeometryPtr caps_geom1 (new hpp::fcl::Capsule(capsRadius, capsLength)); // WARNING : FCL takes the capsule halfLength !
-    const CollisionGeometryPtr caps_geom2 (new hpp::fcl::Capsule(capsRadius, capsLength)); // WARNING : FCL takes the capsule halfLength !
+    // Initialize fcl geometries
+    const CollisionGeometryPtr caps_geom1 (new hpp::fcl::Capsule(capsRadius, capsLength)); 
+    const CollisionGeometryPtr caps_geom2 (new hpp::fcl::Capsule(capsRadius, capsLength));
 
+    // Initialize geometry objects
+        // Capsule 1
     std::string caps1_name = std::string("caps_") + frameName1;
     pinocchio::GeometryObject caps1_gobj(caps1_name,
                                          frameInd1,
                                          model.frames[frameInd1].parent,
                                          caps_geom1, 
-                                         j1Mframe1.act(capsFrame));
-    pinocchio::GeomIndex caps1 = gmodel.addGeometryObject(caps1_gobj, model);
-
+                                         j1Mframe1.act(capsFrame1));    
+        // Capsule 2
     std::string caps2_name = std::string("caps_") + frameName2;  
     pinocchio::GeometryObject caps2_gobj(caps2_name,
                                          frameInd2,
                                          model.frames[frameInd2].parent,
                                          caps_geom2, 
-                                         j2Mframe2.act(capsFrame));
-    pinocchio::GeomIndex caps2 = gmodel.addGeometryObject(caps2_gobj, model);  
-
+                                         j2Mframe2.act(capsFrame2));     
+    // Add capsules to the model and make them a collision pair
+    pinocchio::GeomIndex caps1 = gmodel.addGeometryObject(caps1_gobj, model);
+    pinocchio::GeomIndex caps2 = gmodel.addGeometryObject(caps2_gobj, model); 
     gmodel.addCollisionPair(pinocchio::CollisionPair(caps1,caps2));
 
+    // Compute and return the distance result
     pinocchio::GeometryData gdata(gmodel);
     pinocchio::computeDistances(model,data,gmodel,gdata,config);
     std::vector< fcl::DistanceResult > collisions_dist = gdata.distanceResults;              
@@ -131,7 +143,13 @@ double getFCLResult(pinocchio::Model& model,
 }
 
 // Generates the model for the function f(q, f1, f2) = dist. between legs f1,f2 
-ADFun tapeADFunEnd2End(pinocchio::Model model, int frameInd1, int frameInd2, ADScalar capsLength, ADScalar capsRadius, pinocchio::SE3Tpl<ADScalar> f1Mcaps)
+ADFun tapeADFunEnd2End(pinocchio::Model model, 
+                       int frameInd1, 
+                       int frameInd2, 
+                       ADScalar capsLength, 
+                       ADScalar capsRadius, 
+                       pinocchio::SE3Tpl<ADScalar> f1Mcaps1,
+                       pinocchio::SE3Tpl<ADScalar> f2Mcaps2 )
 {
     // Cast the model to ADScalar type and regenerate the model data
     ModelTpl<ADScalar> cast_rmodel = model.cast<ADScalar>(); 
@@ -149,7 +167,7 @@ ADFun tapeADFunEnd2End(pinocchio::Model model, int frameInd1, int frameInd2, ADS
     pinocchio::forwardKinematics(cast_rmodel, cast_rdata, ad_X);
     pinocchio::updateFramePlacements(cast_rmodel, cast_rdata);
 
-    ADScalar a = end2endWrapper<ADScalar>(cast_rmodel, cast_rdata, ad_X, frameInd1, frameInd2, capsLength, capsRadius, f1Mcaps);
+    ADScalar a = end2endWrapper<ADScalar>(cast_rmodel, cast_rdata, ad_X, frameInd1, frameInd2, capsLength, capsRadius, f1Mcaps1, f2Mcaps2);
     ad_Y[0] = a;
     ad_fun.Dependent(ad_X, ad_Y);
 
