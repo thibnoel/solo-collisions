@@ -14,7 +14,7 @@ using namespace pinocchio;
 // Function to generate
 // Wrapper for pinocchio::forwardKinematics for frames f1, f2 + segmentDistance
 template<typename Scalar>
-Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model, 
+Scalar legsCapsulesDistanceCheck(pinocchio::ModelTpl<Scalar> model, 
                       pinocchio::DataTpl<Scalar> data, 
                       Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& config, 
                       int frameInd1, 
@@ -34,29 +34,27 @@ Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model,
     pinocchio::SE3Tpl<Scalar> f1Mf2 = relativePlacement<Scalar>(model, data, config, frameInd1, frameInd2);
 
     // Initialize capsule positions
-    Eigen::Matrix<Scalar, 3, 1> caps0Pos0;
-    Eigen::Matrix<Scalar, 3, 1> caps0Pos1;
-    Eigen::Matrix<Scalar, 3, 1> caps1Pos0;
-    Eigen::Matrix<Scalar, 3, 1> caps1Pos1;
+    Eigen::Matrix<Scalar, 3, 1> caps1P0;
+    Eigen::Matrix<Scalar, 3, 1> caps1P1;
+    Eigen::Matrix<Scalar, 3, 1> caps2P0;
+    Eigen::Matrix<Scalar, 3, 1> caps2P1;
     
-    // Compute capsule positions
-    caps0Pos0[0] = 0;
-    caps0Pos0[1] = 0;
-    caps0Pos0[2] = 0;
+    // Compute capsule ends positions
+    caps1P0[0] = 0;
+    caps1P0[1] = 0;
+    caps1P0[2] = 0;
         // Rewrite needed maybe? (order matters here)
-    caps0Pos1 << caps0Pos0 + capsDirVec;
-   
-    caps1Pos0 << f1Mf2.act(f2Mcaps2.act(caps0Pos0));
-    caps1Pos1 << f1Mf2.act(f2Mcaps2.act(caps0Pos1));
-
-    caps0Pos0 << f1Mcaps1.act(caps0Pos0);
-    caps0Pos1 << f1Mcaps1.act(caps0Pos1);  
+    caps1P1 << caps1P0 + capsDirVec;
+    caps2P0 << f1Mf2.act(f2Mcaps2.act(caps1P0));
+    caps2P1 << f1Mf2.act(f2Mcaps2.act(caps1P1));
+    caps1P0 << f1Mcaps1.act(caps1P0);
+    caps1P1 << f1Mcaps1.act(caps1P1);  
 
     // Compute min. distance between capsules segments minus capsules radii 
-    return CppAD::sqrt(segmentSegmentSqrDistance_scalar<Scalar>(caps0Pos0[0], caps0Pos0[1], caps0Pos0[2],
-                                         caps0Pos1[0], caps0Pos1[1], caps0Pos1[2],
-                                         caps1Pos0[0], caps1Pos0[1], caps1Pos0[2],
-                                         caps1Pos1[0], caps1Pos1[1], caps1Pos1[2])) - 2*capsRadius;
+    return CppAD::sqrt(segmentSegmentSqrDistance_scalar<Scalar>(caps1P0[0], caps1P0[1], caps1P0[2],
+                                         caps1P1[0], caps1P1[1], caps1P1[2],
+                                         caps2P0[0], caps2P0[1], caps2P0[2],
+                                         caps2P1[0], caps2P1[1], caps2P1[2])) - 2*capsRadius;
 
     
 }
@@ -166,7 +164,7 @@ ADFun tapeADFunEnd2End(pinocchio::Model model,
     pinocchio::forwardKinematics(cast_rmodel, cast_rdata, ad_X);
     pinocchio::updateFramePlacements(cast_rmodel, cast_rdata);
 
-    ADScalar a = end2endWrapper<ADScalar>(cast_rmodel, cast_rdata, ad_X, frameInd1, frameInd2, capsLength, capsRadius, f1Mcaps1, f2Mcaps2);
+    ADScalar a = legsCapsulesDistanceCheck<ADScalar>(cast_rmodel, cast_rdata, ad_X, frameInd1, frameInd2, capsLength, capsRadius, f1Mcaps1, f2Mcaps2);
     ad_Y[0] = a;
     ad_fun.Dependent(ad_X, ad_Y);
 

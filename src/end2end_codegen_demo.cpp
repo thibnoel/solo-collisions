@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <iostream>
+#include <fstream>
 #include "end2end_legs_collision_check.hpp"
 #include <chrono> 
 using namespace std::chrono; 
@@ -7,17 +8,19 @@ using namespace pinocchio;
 
 int main(int argc, char* argv[])
 {
+    // Initialize random seed 
+    srand((unsigned int) time(0));
 
     // Check the number of parameters
     if (argc < 3) {
-        // Tell the user how to run the program
+        // Provide usage feedback
         std::cerr << "Usage: " << argv[0] << " Frame1_NAME Frame2_NAME" << std::endl;
-        /* "Usage messages" are a conventional way of telling the user
-         * how to run a program if they enter the command incorrectly.
-         */
         return 1;
     }
 
+    /***************************************************************************
+     *                      Parameters initialization
+     **************************************************************************/
     // Initialize frame names
     const std::string frame1Name = argv[1];
     const std::string frame2Name = argv[2];
@@ -27,17 +30,19 @@ int main(int argc, char* argv[])
     const double CAPSULE_RADIUS = 0.02;
 
     // Initialize capsules placements :
-        // Each of the capsule has to be placed and oriented in its leg frame
+    // Each of the capsule has to be placed and oriented in its leg frame
         // Translations
     Eigen::Matrix<double, 3, 1> FRAME1_TO_CAPS1_TRANSLATION;
     FRAME1_TO_CAPS1_TRANSLATION[0] = 0.0;
     FRAME1_TO_CAPS1_TRANSLATION[1] = 0.0;
     FRAME1_TO_CAPS1_TRANSLATION[2] = 0.0;
+    // Test with random capsule translation : FRAME1_TO_CAPS1_TRANSLATION = Eigen::Matrix<double,3,1>::Random(3,1);
 
     Eigen::Matrix<double, 3, 1> FRAME2_TO_CAPS2_TRANSLATION;
     FRAME2_TO_CAPS2_TRANSLATION[0] = 0.0;
     FRAME2_TO_CAPS2_TRANSLATION[1] = 0.0;
     FRAME2_TO_CAPS2_TRANSLATION[2] = 0.0;
+    // Test with random capsule translation : FRAME2_TO_CAPS2_TRANSLATION = Eigen::Matrix<double,3,1>::Random(3,1);
         // Rotations
     Eigen::Quaternion<double> FRAME1_TO_CAPS1_ROTATION;
     FRAME1_TO_CAPS1_ROTATION.setIdentity();
@@ -65,6 +70,9 @@ int main(int argc, char* argv[])
     const int frameInd1 = (int)rmodel.getFrameId(frame1Name);
     const int frameInd2 = (int)rmodel.getFrameId(frame2Name);
 
+    /***************************************************************************
+     *                               Code generation
+     **************************************************************************/
     // Define AD parameters
         // Geometry
     ADScalar ad_capsLength;
@@ -77,21 +85,26 @@ int main(int argc, char* argv[])
     
     // Generate the code for the specified frames and capsule parameters, and compile it as library
     ADFun genFun = tapeADFunEnd2End(rmodel, frameInd1, frameInd2, ad_capsLength, ad_capsRadius, ad_f1Mcaps1, ad_f2Mcaps2);
-    generateCompileCLib("end2end_" + frame1Name + frame2Name,genFun);
+    generateCompileCLib("end2end_" + frame1Name + "_" + frame2Name,genFun);
     // Print the C code to the console
     std::cout << "---- CODE GENERATION ----" << std::endl;
     std::cout << "// Generated end2end(q) :\n";
     std::cout << generateCSourceCode(genFun, rmodel.nq) << std::endl;
+    // Dump the generated code in a file
+    std::ofstream csource_file;
+    csource_file.open(frame1Name + "_" + frame2Name + "_dist_check.txt");
+    csource_file << generateCSourceCode(genFun, rmodel.nq);
+    csource_file.close();
 
-    std::cout << "---- CODE EVALUATION ----" << std::endl;
-
-    const std::string LIBRARY_NAME = "./libCGend2end_" + frame1Name + frame2Name;
-    const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
     /***************************************************************************
-     *                       Use the dynamic library
+     *               Use the dynamic library and check the result
+     *                              against FCL
      **************************************************************************/
+    const std::string LIBRARY_NAME = "./libCGend2end_" + frame1Name + "_" + frame2Name;
+    const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
+
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
-    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("end2end_" + frame1Name + frame2Name);
+    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("end2end_" + frame1Name + "_" + frame2Name);
 
     // Generated code evaluation
     Eigen::Matrix<double, Eigen::Dynamic, 1> X_test;
@@ -110,8 +123,7 @@ int main(int argc, char* argv[])
     X_test[10] = 0;
     X_test[11] = 0;
 
-        // Get a random config.
-    srand((unsigned int) time(0));
+        // Input : Get a random config.
     //X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
 
         // Output : distance
@@ -131,6 +143,7 @@ int main(int argc, char* argv[])
     auto duration_fcl = duration_cast<microseconds>(stop_fcl - start_fcl);
 
     // Print output
+    std::cout << "---- CODE EVALUATION ----" << std::endl;
     std::cout << "X = \n" << X_test << std::endl;
     std::cout << "\tDist. result (codegen): " << Y_test << std::endl;
     std::cout << "Time taken by function: " << ((int)duration_cg.count())*0.001 << " microseconds" << std::endl; 
@@ -139,8 +152,9 @@ int main(int argc, char* argv[])
     std::cout << "\n" << std::endl;
     std::cout << "Dist. error = " << std::abs(fcl_dist - Y_test[0]) << std::endl;
 
-    // TO MOVE IN UNIT TEST
-
+    /***************************************************************************
+     *                       TO MOVE IN UNIT TEST
+     **************************************************************************/
         // Test on n random configurations
     int n = 100;
     double max_dist_err = 0;
