@@ -30,14 +30,14 @@ int main(int argc, char* argv[])
         // Each of the capsule has to be placed and oriented in its leg frame
         // Translations
     Eigen::Matrix<double, 3, 1> FRAME1_TO_CAPS1_TRANSLATION;
-    FRAME1_TO_CAPS1_TRANSLATION[0] = 0;
-    FRAME1_TO_CAPS1_TRANSLATION[1] = 0;
-    FRAME1_TO_CAPS1_TRANSLATION[2] = 0;
+    FRAME1_TO_CAPS1_TRANSLATION[0] = 0.0;
+    FRAME1_TO_CAPS1_TRANSLATION[1] = 0.0;
+    FRAME1_TO_CAPS1_TRANSLATION[2] = 0.0;
 
     Eigen::Matrix<double, 3, 1> FRAME2_TO_CAPS2_TRANSLATION;
-    FRAME2_TO_CAPS2_TRANSLATION[0] = 0;
-    FRAME2_TO_CAPS2_TRANSLATION[1] = 0;
-    FRAME2_TO_CAPS2_TRANSLATION[2] = 0;
+    FRAME2_TO_CAPS2_TRANSLATION[0] = 0.0;
+    FRAME2_TO_CAPS2_TRANSLATION[1] = 0.0;
+    FRAME2_TO_CAPS2_TRANSLATION[2] = 0.0;
         // Rotations
     Eigen::Quaternion<double> FRAME1_TO_CAPS1_ROTATION;
     FRAME1_TO_CAPS1_ROTATION.setIdentity();

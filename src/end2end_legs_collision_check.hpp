@@ -30,7 +30,7 @@ Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model,
     capsDirVec[1] = 0;
     capsDirVec[2] = -1*capsLength;
 
-    // Get and resize relative placement between f1, f2
+    // Get relative placement between f1, f2
     pinocchio::SE3Tpl<Scalar> f1Mf2 = relativePlacement<Scalar>(model, data, config, frameInd1, frameInd2);
 
     // Initialize capsule positions
@@ -39,19 +39,18 @@ Scalar end2endWrapper(pinocchio::ModelTpl<Scalar> model,
     Eigen::Matrix<Scalar, 3, 1> caps1Pos0;
     Eigen::Matrix<Scalar, 3, 1> caps1Pos1;
     
-    // Update capsule positions
+    // Compute capsule positions
     caps0Pos0[0] = 0;
     caps0Pos0[1] = 0;
     caps0Pos0[2] = 0;
-
+        // Rewrite needed maybe? (order matters here)
     caps0Pos1 << caps0Pos0 + capsDirVec;
+   
+    caps1Pos0 << f1Mf2.act(f2Mcaps2.act(caps0Pos0));
+    caps1Pos1 << f1Mf2.act(f2Mcaps2.act(caps0Pos1));
 
     caps0Pos0 << f1Mcaps1.act(caps0Pos0);
-    caps0Pos1 << f1Mcaps1.act(caps0Pos1);
-    caps1Pos0 << f1Mf2.actInv(caps0Pos0);
-    caps1Pos1 << f1Mf2.actInv(caps0Pos1);
-    caps1Pos0 << f2Mcaps2.actInv(caps1Pos0);
-    caps1Pos1 << f2Mcaps2.actInv(caps1Pos1);
+    caps0Pos1 << f1Mcaps1.act(caps0Pos1);  
 
     // Compute min. distance between capsules segments minus capsules radii 
     return CppAD::sqrt(segmentSegmentSqrDistance_scalar<Scalar>(caps0Pos0[0], caps0Pos0[1], caps0Pos0[2],
