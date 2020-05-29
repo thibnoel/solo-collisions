@@ -211,49 +211,35 @@ void dist_check_FLL_HLL(float x[], float y[])
 
 void app_main(void)
 {
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
-    // printf("Hello world!\n");
+	float test_config[12];
+	float test_y[1] = {0};
+	int64_t duration;
 	int64_t start_time;
 	int64_t end_time;
-	int64_t duration = 0;
-	float test_config[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
-	float test_y[1] = {0};
+	float a = 3.14;
 
-	start_time = esp_timer_get_time();
-	for(int i=0; i<1000; i++)
+	while(true)
 	{
+		test_config[0] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[1] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[2] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[3] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[4] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[5] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[6] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[7] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[8] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[9] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[10] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+		test_config[11] = -a + 2*((float)rand()/(float)(RAND_MAX)) * a;
+
+		start_time = esp_timer_get_time();
 		dist_check_FLL_HLL(test_config, test_y);
+		end_time = esp_timer_get_time();
+
+		duration = end_time - start_time;
+		printf("Duration : %F \n", duration*1.);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
-	end_time = esp_timer_get_time();
-
-	duration = end_time-start_time;
-    printf("Dist result : %f \n",test_y[0]);
-	printf("Start time : %" PRId64 "\n", start_time);
-	printf("End time : %" PRId64 "\n", end_time);
-	printf("Avg. duration : %f \n", duration*0.001);
-    printf("\n");
-
-    /* Print chip information 
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("This is %s chip with %d CPU cores, WiFi%s%s, ",
-            CONFIG_IDF_TARGET,
-            chip_info.cores,
-            (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-            (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
-
-    printf("silicon revision %d, ", chip_info.revision);
-
-    printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
-            (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
-
-    printf("Free heap: %d\n", esp_get_free_heap_size());
-	*/
-    for (int i = 5; i >= 0; i--) {
-        printf("Restarting in %d seconds...\n", i);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-    printf("Restarting now.\n");
-    fflush(stdout);
-    esp_restart();
 }
+
