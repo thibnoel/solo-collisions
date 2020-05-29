@@ -15,11 +15,11 @@
 #include "esp_system.h"
 #include "esp_spi_flash.h"
 
-void dist_check_FLL_HLL(double x[], double y[]);
+void dist_check_FLL_HLL(float x[], float y[]);
 
-void dist_check_FLL_HLL(double x[], double y[])
+void dist_check_FLL_HLL(float x[], float y[])
 {	
-	double v[29];
+	float v[29];
 
 	v[0] = cos(x[1]);
 	v[1] = cos(x[2]);
@@ -211,15 +211,16 @@ void dist_check_FLL_HLL(double x[], double y[])
 
 void app_main(void)
 {
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
     // printf("Hello world!\n");
 	int64_t start_time;
 	int64_t end_time;
 	int64_t duration = 0;
-	double test_config[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
-	double test_y[1] = {0};
+	float test_config[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
+	float test_y[1] = {0};
 
 	start_time = esp_timer_get_time();
-	for(int i=0; i<100; i++)
+	for(int i=0; i<1000; i++)
 	{
 		dist_check_FLL_HLL(test_config, test_y);
 	}
@@ -229,7 +230,7 @@ void app_main(void)
     printf("Dist result : %f \n",test_y[0]);
 	printf("Start time : %" PRId64 "\n", start_time);
 	printf("End time : %" PRId64 "\n", end_time);
-	printf("Avg. duration : %" PRId64 "\n", duration/100);
+	printf("Avg. duration : %f \n", duration*0.001);
     printf("\n");
 
     /* Print chip information 
