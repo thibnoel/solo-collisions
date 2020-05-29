@@ -1,0 +1,1 @@
+cmd='/home/thibault/.local/lib/python3.5/site-packages/cmake/data/bin/cmake;-DSDKCONFIG=/home/thibault/esp/collision-check/sdkconfig;-DIDF_PATH=/home/thibault/esp/esp-idf;-DIDF_TARGET=esp32;-DPYTHON_DEPS_CHECKED=1;-DPYTHON=/usr/bin/python;-DEXTRA_COMPONENT_DIRS=/home/thibault/esp/esp-idf/components/bootloader;-DLEGACY_INCLUDE_COMMON_HEADERS=;-GNinja;<SOURCE_DIR><SOURCE_SUBDIR>'
