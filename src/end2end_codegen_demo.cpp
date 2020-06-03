@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
     Eigen::Matrix<double, Eigen::Dynamic, 1> X_test;
     X_test.resize(rmodel.nq);
         // Input : robot configuration
-    X_test[0] = 0;
+    /*X_test[0] = 0;
     X_test[1] = 0;
     X_test[2] = 0;
     X_test[3] = 0;
@@ -121,10 +121,10 @@ int main(int argc, char* argv[])
     X_test[8] = 0;
     X_test[9] = 0;
     X_test[10] = 0;
-    X_test[11] = 0;
+    X_test[11] = 0;*/
 
         // Input : Get a random config.
-    //X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+    X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
 
         // Output : distance
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;

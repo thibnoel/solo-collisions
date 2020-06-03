@@ -60,6 +60,10 @@ void generateCompileCLib(std::string func_name, ADFun& fun)
     compile_options[0] = "-Ofast";
     compiler.setCompileFlags(compile_options);
     dynamicLibManager.createDynamicLibrary(compiler, false);
+
+
+    SaveFilesModelLibraryProcessor<double> p(libcgen);
+    p.saveSources();
     //std::unique_ptr<DynamicLib<Scalar> > dynamicLib;
 
     // Load library 
