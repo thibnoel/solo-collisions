@@ -49,25 +49,40 @@ CAPS_LENGTH = 0.2
 CAPS_RADIUS = 0.02
 
 upper_caps_pos_offset = np.array([0.,0.0,0])
-lower_caps_pos_offset = np.array([0,0,0])
+lower_caps_pos_offset = np.array([0,-0.0,0])
 
 upper_offset = pio.SE3(np.eye(3), upper_caps_pos_offset + np.array([0,0,-CAPS_LENGTH*0.5]))
 lower_offset = pio.SE3(np.eye(3), lower_caps_pos_offset + np.array([0,0,-CAPS_LENGTH*0.5]))
 
 fl_upper_caps = addCapsule("FL_UPPER_simple_caps",CAPS_LENGTH,CAPS_RADIUS,fl_upper_leg, fl_hfe, upper_offset, rmodel, gmodel, gui=gv)
-fr_lower_caps = addCapsule("HL_LOWER_simple_caps",CAPS_LENGTH,CAPS_RADIUS,hl_lower_leg, hl_kfe, lower_offset, rmodel, gmodel, gui=gv)
-hl_upper_caps = addCapsule("HL_UPPER_simple_caps",CAPS_LENGTH,CAPS_RADIUS,hl_upper_leg, hl_hfe, upper_offset, rmodel, gmodel, gui=gv)
+fl_lower_caps = addCapsule("FL_LOWER_simple_caps",CAPS_LENGTH,CAPS_RADIUS,fl_lower_leg, fl_kfe, lower_offset, rmodel, gmodel, gui=gv)
+
+fr_upper_caps = addCapsule("FR_UPPER_simple_caps",CAPS_LENGTH,CAPS_RADIUS,fr_upper_leg, fr_hfe, lower_offset, rmodel, gmodel, gui=gv)
+hl_upper_caps = addCapsule("HL_UPPER_simple_caps",CAPS_LENGTH,CAPS_RADIUS,hl_lower_leg, hl_kfe, upper_offset, rmodel, gmodel, gui=gv)
 
 gmodel.addCollisionPair(pio.CollisionPair(fl_upper_caps,hl_upper_caps))
-gmodel.addCollisionPair(pio.CollisionPair(fl_upper_caps,fr_lower_caps))
+gmodel.addCollisionPair(pio.CollisionPair(fl_upper_caps,fl_lower_caps))
+
+robot_config[6] = 0.
+robot_config[8] = 0
+robot_config[9] = 0.
+robot_config[10] = 0
+robot_config[11] = 0.
+robot_config[12] = 0
+robot_config[13] = 1.
+robot_config[14] = 0
+robot_config[15] = 0.
+robot_config[16] = 0
+robot_config[17] = 0.
+robot_config[18] = 0. 
 
 gdata  = gmodel.createData()
 pio.computeDistances(rmodel,rdata,gmodel,gdata, robot_config)
 collisions_dist = gdata.distanceResults
 
+print(rmodel.nq)
 print(collisions_dist[0].min_distance, collisions_dist[1].min_distance)
 
-robot_config = np.zeros(rmodel.nq)
 # Display the robot
 robot.rebuildData() 
 robot.displayCollisions(True)

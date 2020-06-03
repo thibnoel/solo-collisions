@@ -25,7 +25,7 @@ def initSolo():
 def addCapsule(name, length, radius, linkFrameId, jointId, fMcaps, rmodel, gmodel, gui=None):
     caps = gmodel.addGeometryObject(pio.GeometryObject(name,
                                                      linkFrameId,jointId,
-                                                     hppfcl.Capsule(radius,length),
+                                                     hppfcl.Capsule(radius,length), # WARNING : FCL takses the capsule halfLength !
                                                      fMcaps),rmodel)
     if(gui!=None):
         gui.addCapsule( "world/pinocchio/collisions/" + name, radius, length, [1,0,0,.1])

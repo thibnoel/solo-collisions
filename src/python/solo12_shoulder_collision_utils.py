@@ -120,10 +120,23 @@ def followBoundary(col_map, dist_threshold=0, first_dir=6):
         #print(traj)
         return traj[first_dir_change_index:]
 
+# Needs rework : does not take into account the periodicity of the rotation space!
 def colMapToDistField(col_map):
         traj1 = np.array(followBoundary(col_map))
         traj2 = np.array(followBoundary(col_map, first_dir=2))
-        traj = np.concatenate([traj1, traj2])
+
+        """ REWORK """
+        ###################################################
+        traj1_offset0 = traj1 + np.array(len(traj1)*[[0,-len(col_map)]])
+        traj1_offset1 = traj1 + np.array(len(traj1)*[[0,len(col_map)]])
+
+        traj2_offset0 = traj2 + np.array(len(traj2)*[[0,-len(col_map)]])
+        traj2_offset1 = traj2 + np.array(len(traj2)*[[0,len(col_map)]])
+
+        
+        traj = np.concatenate([traj1, traj2, traj1_offset0, traj1_offset1, traj2_offset0, traj2_offset1])
+        
+        ###################################################
         dist_field = []
         for i in range(len(col_map)):
                 dist_field_j = []
@@ -141,3 +154,9 @@ def colMapToDistField(col_map):
                         dist_field_j.append(sign*np.sqrt(curr_point_dist))
                 dist_field.append(dist_field_j)
         return dist_field
+
+def new_colMapToDistField(col_map):
+        traj1 = np.array(followBoundary(col_map))
+        traj2 = np.array(followBoundary(col_map, first_dir=2))
+
+        traj1_offset = traj1 + np.array(len(traj1)*[[0,-len(col_map)]])
