@@ -71,6 +71,35 @@ Scalar legsCapsulesDistanceCheck(pinocchio::ModelTpl<Scalar> model,
     
 }
 
+template<typename Scalar>
+Eigen::Matrix<Scalar, 4, 1> legToLegDistanceCheck(pinocchio::ModelTpl<Scalar> model, 
+                                                    pinocchio::DataTpl<Scalar> rdata, 
+                                                    Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& config, 
+                                                    std::string leg1, 
+                                                    std::string leg2, 
+                                                    Scalar upperCapsLength, 
+                                                    Scalar upperCapsRadius, 
+                                                    Scalar lowerCapsLength, 
+                                                    Scalar lowerCapsRadius, 
+                                                    pinocchio::SE3Tpl<Scalar> f1Mcaps1,
+                                                    pinocchio::SE3Tpl<Scalar> f2Mcaps2 )
+{
+    const int frame1Up = (int)model.getFrameId(leg1 + "_UPPER_LEG");
+    const int frame1Low = (int)model.getFrameId(leg1 + "_LOWER_LEG");
+    const int frame2Up = (int)model.getFrameId(leg2 + "_UPPER_LEG");
+    const int frame2Low = (int)model.getFrameId(leg2 + "_LOWER_LEG");   
+
+    Scalar d1u2u = legsCapsulesDistanceCheck<Scalar>(model, rdata, config, frame1Up, frame2Up, upperCapsLength, upperCapsRadius, upperCapsLength, upperCapsRadius, f1Mcaps1, f2Mcaps2);
+    Scalar d1u2l = legsCapsulesDistanceCheck<Scalar>(model, rdata, config, frame1Up, frame2Low, upperCapsLength, upperCapsRadius, lowerCapsLength, lowerCapsRadius, f1Mcaps1, f2Mcaps2);
+    Scalar d1l2u = legsCapsulesDistanceCheck<Scalar>(model, rdata, config, frame1Low, frame2Up, lowerCapsLength, lowerCapsRadius, upperCapsLength, upperCapsRadius, f1Mcaps1, f2Mcaps2);
+    Scalar d1l2l = legsCapsulesDistanceCheck<Scalar>(model, rdata, config, frame1Low, frame2Low, lowerCapsLength, lowerCapsRadius, lowerCapsLength, lowerCapsRadius, f1Mcaps1, f2Mcaps2);   
+
+    Eigen::Matrix<Scalar, 4, 1> distVec;
+    distVec << d1u2u, d1u2l, d1l2u, d1l2l;
+
+    return distVec;                                           
+}
+
 // Helper function : returns the jMf SE3 placement given a frame f, j being its parent joint
 pinocchio::SE3 jointToFrameRelativePlacement(pinocchio::Model model, pinocchio::Data data, Eigen::Matrix<double, Eigen::Dynamic, 1>& config, int frameInd)
 {
@@ -187,6 +216,45 @@ ADFun tapeADFunEnd2End(pinocchio::Model model,
 
     ADScalar a = legsCapsulesDistanceCheck<ADScalar>(cast_rmodel, cast_rdata, ad_X, frameInd1, frameInd2, capsLength1, capsRadius1, capsLength2, capsRadius2, f1Mcaps1, f2Mcaps2);
     ad_Y[0] = a;
+    ad_fun.Dependent(ad_X, ad_Y);
+
+    return ad_fun;
+}
+
+// Generates the model for the function f(q, f1, f2) = dist. between legs f1,f2 
+// Result is given as a vector of distances between the pairs, in the following order :
+//      [(frame1Up, frame2Up)
+//       (frame1Up, frame2Low)
+//       (frame2Up, frame1Low)
+//       (frame1Low, frame2Low)]
+ADFun tapeADFunFullLeg(pinocchio::Model model, 
+                       std::string leg1, 
+                       std::string leg2, 
+                       ADScalar upperCapsLength, 
+                       ADScalar upperCapsRadius, 
+                       ADScalar lowerCapsLength, 
+                       ADScalar lowerCapsRadius, 
+                       pinocchio::SE3Tpl<ADScalar> f1Mcaps1,
+                       pinocchio::SE3Tpl<ADScalar> f2Mcaps2 )
+{
+    
+    // Cast the model to ADScalar type and regenerate the model data
+    ModelTpl<ADScalar> cast_rmodel = model.cast<ADScalar>(); 
+    DataTpl<ADScalar> cast_rdata(cast_rmodel);  
+
+    // Initnialize AD input and output
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
+    ad_X.resize(cast_rmodel.nq);
+    ad_Y.resize(4);
+    CppAD::Independent(ad_X);
+    // Initialize AD function
+    ADFun ad_fun;
+
+    pinocchio::forwardKinematics(cast_rmodel, cast_rdata, ad_X);
+    pinocchio::updateFramePlacements(cast_rmodel, cast_rdata);
+
+    ad_Y = legToLegDistanceCheck<ADScalar>(cast_rmodel, cast_rdata, ad_X, leg1, leg2, upperCapsLength, upperCapsRadius, lowerCapsLength, lowerCapsRadius, f1Mcaps1, f2Mcaps2);
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
