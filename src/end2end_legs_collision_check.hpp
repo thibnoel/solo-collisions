@@ -19,16 +19,23 @@ Scalar legsCapsulesDistanceCheck(pinocchio::ModelTpl<Scalar> model,
                       Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& config, 
                       int frameInd1, 
                       int frameInd2,
-                      Scalar capsLength,
-                      Scalar capsRadius,
+                      Scalar capsLength1,
+                      Scalar capsRadius1,
+                      Scalar capsLength2,
+                      Scalar capsRadius2,
                       pinocchio::SE3Tpl<Scalar> f1Mcaps1,
                       pinocchio::SE3Tpl<Scalar> f2Mcaps2)
 {
     // Define capsule directing vector
-    Eigen::Matrix<Scalar, 3, 1> capsDirVec;
-    capsDirVec[0] = 0;
-    capsDirVec[1] = 0;
-    capsDirVec[2] = -1*capsLength;
+    Eigen::Matrix<Scalar, 3, 1> capsDirVec1;
+    capsDirVec1[0] = 0;
+    capsDirVec1[1] = 0;
+    capsDirVec1[2] = -1*capsLength1;
+
+    Eigen::Matrix<Scalar, 3, 1> capsDirVec2;
+    capsDirVec2[0] = 0;
+    capsDirVec2[1] = 0;
+    capsDirVec2[2] = -1*capsLength2;
 
     // Get relative placement between f1, f2
     pinocchio::SE3Tpl<Scalar> f1Mf2 = relativePlacement<Scalar>(model, data, config, frameInd1, frameInd2);
@@ -36,6 +43,7 @@ Scalar legsCapsulesDistanceCheck(pinocchio::ModelTpl<Scalar> model,
     // Initialize capsule positions
     Eigen::Matrix<Scalar, 3, 1> caps1P0;
     Eigen::Matrix<Scalar, 3, 1> caps1P1;
+    Eigen::Matrix<Scalar, 3, 1> caps1P1bis;
     Eigen::Matrix<Scalar, 3, 1> caps2P0;
     Eigen::Matrix<Scalar, 3, 1> caps2P1;
     
@@ -44,17 +52,21 @@ Scalar legsCapsulesDistanceCheck(pinocchio::ModelTpl<Scalar> model,
     caps1P0[1] = 0;
     caps1P0[2] = 0;
         // Rewrite needed maybe? (order matters here)
-    caps1P1 << caps1P0 + capsDirVec;
+    caps1P1 << caps1P0 + capsDirVec1;
+    caps1P1bis << caps1P0 + capsDirVec2;
+
     caps2P0 << f1Mf2.act(f2Mcaps2.act(caps1P0));
-    caps2P1 << f1Mf2.act(f2Mcaps2.act(caps1P1));
+    caps2P1 << f1Mf2.act(f2Mcaps2.act(caps1P1bis));
+    
     caps1P0 << f1Mcaps1.act(caps1P0);
     caps1P1 << f1Mcaps1.act(caps1P1);  
 
+    std::cout << capsRadius1 << std::endl;
     // Compute min. distance between capsules segments minus capsules radii 
     return CppAD::sqrt(segmentSegmentSqrDistance_scalar<Scalar>(caps1P0[0], caps1P0[1], caps1P0[2],
                                          caps1P1[0], caps1P1[1], caps1P1[2],
                                          caps2P0[0], caps2P0[1], caps2P0[2],
-                                         caps2P1[0], caps2P1[1], caps2P1[2])) - 2*capsRadius;
+                                         caps2P1[0], caps2P1[1], caps2P1[2])) - (capsRadius1 + capsRadius2);
 
     
 }
@@ -76,8 +88,10 @@ double getFCLResult(pinocchio::Model& model,
                     Eigen::Matrix<double, Eigen::Dynamic, 1>& config, 
                     std::string frameName1, 
                     std::string frameName2, 
-                    double capsLength,
-                    double capsRadius,
+                    double capsLength1,
+                    double capsRadius1,
+                    double capsLength2,
+                    double capsRadius2,
                     pinocchio::SE3 f1Mcaps1,
                     pinocchio::SE3 f2Mcaps2)
 {
@@ -89,28 +103,33 @@ double getFCLResult(pinocchio::Model& model,
 
     // Offset f1Mcaps1 to an end of the capsule
     // TODO : Do the same for caps2 (f2Mcaps as arg)
-        // Translation
-    Eigen::Matrix<double, 3, 1> capsPosOffset;
-    capsPosOffset[0] = 0;
-    capsPosOffset[1] = 0;
-    capsPosOffset[2] = -0.5*capsLength;
+        // Translations
+    Eigen::Matrix<double, 3, 1> capsPosOffset1;
+    capsPosOffset1[0] = 0;
+    capsPosOffset1[1] = 0;
+    capsPosOffset1[2] = -0.5*capsLength1;
+
+    Eigen::Matrix<double, 3, 1> capsPosOffset2;
+    capsPosOffset2[0] = 0;
+    capsPosOffset2[1] = 0;
+    capsPosOffset2[2] = -0.5*capsLength2;
         // Rotation
     Eigen::Quaternion<double> capsRotOffset;
     capsRotOffset.setIdentity();
         // SE3 object
 
-    pinocchio::SE3 capsFrame1(capsRotOffset, capsPosOffset);
+    pinocchio::SE3 capsFrame1(capsRotOffset, capsPosOffset1);
     capsFrame1 = f1Mcaps1.act(capsFrame1);
 
-    pinocchio::SE3 capsFrame2(capsRotOffset, capsPosOffset);
+    pinocchio::SE3 capsFrame2(capsRotOffset, capsPosOffset2);
     capsFrame2 = f2Mcaps2.act(capsFrame2);
 
     pinocchio::SE3 j1Mframe1 = jointToFrameRelativePlacement(model, data, config, (int)frameInd1);
     pinocchio::SE3 j2Mframe2 = jointToFrameRelativePlacement(model, data, config, (int)frameInd2);
 
     // Initialize fcl geometries
-    const CollisionGeometryPtr caps_geom1 (new hpp::fcl::Capsule(capsRadius, capsLength)); 
-    const CollisionGeometryPtr caps_geom2 (new hpp::fcl::Capsule(capsRadius, capsLength));
+    const CollisionGeometryPtr caps_geom1 (new hpp::fcl::Capsule(capsRadius1, capsLength1)); 
+    const CollisionGeometryPtr caps_geom2 (new hpp::fcl::Capsule(capsRadius2, capsLength2));
 
     // Initialize geometry objects
         // Capsule 1
@@ -143,8 +162,10 @@ double getFCLResult(pinocchio::Model& model,
 ADFun tapeADFunEnd2End(pinocchio::Model model, 
                        int frameInd1, 
                        int frameInd2, 
-                       ADScalar capsLength, 
-                       ADScalar capsRadius, 
+                       ADScalar capsLength1, 
+                       ADScalar capsRadius1, 
+                       ADScalar capsLength2, 
+                       ADScalar capsRadius2, 
                        pinocchio::SE3Tpl<ADScalar> f1Mcaps1,
                        pinocchio::SE3Tpl<ADScalar> f2Mcaps2 )
 {
@@ -164,7 +185,7 @@ ADFun tapeADFunEnd2End(pinocchio::Model model,
     pinocchio::forwardKinematics(cast_rmodel, cast_rdata, ad_X);
     pinocchio::updateFramePlacements(cast_rmodel, cast_rdata);
 
-    ADScalar a = legsCapsulesDistanceCheck<ADScalar>(cast_rmodel, cast_rdata, ad_X, frameInd1, frameInd2, capsLength, capsRadius, f1Mcaps1, f2Mcaps2);
+    ADScalar a = legsCapsulesDistanceCheck<ADScalar>(cast_rmodel, cast_rdata, ad_X, frameInd1, frameInd2, capsLength1, capsRadius1, capsLength2, capsRadius2, f1Mcaps1, f2Mcaps2);
     ad_Y[0] = a;
     ad_fun.Dependent(ad_X, ad_Y);
 

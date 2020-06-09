@@ -26,8 +26,11 @@ int main(int argc, char* argv[])
     const std::string frame2Name = argv[2];
 
     // Capsule geometry
-    const double CAPSULE_LENGTH = 0.2;
-    const double CAPSULE_RADIUS = 0.02;
+    const double UPPER_CAPSULE_LENGTH = 0.2;
+    const double UPPER_CAPSULE_RADIUS = 0.02;
+
+    const double LOWER_CAPSULE_LENGTH = 0.165;
+    const double LOWER_CAPSULE_RADIUS = 0.016;
 
     // Initialize capsules placements :
     // Each of the capsule has to be placed and oriented in its leg frame
@@ -75,16 +78,22 @@ int main(int argc, char* argv[])
      **************************************************************************/
     // Define AD parameters
         // Geometry
-    ADScalar ad_capsLength;
-    ADScalar ad_capsRadius;
-    ad_capsLength = CAPSULE_LENGTH;
-    ad_capsRadius = CAPSULE_RADIUS;    
+    ADScalar ad_upperCapsLength;
+    ADScalar ad_upperCapsRadius;
+    ADScalar ad_lowerCapsLength;
+    ADScalar ad_lowerCapsRadius;
+
+    ad_upperCapsLength = UPPER_CAPSULE_LENGTH;
+    ad_upperCapsRadius = UPPER_CAPSULE_RADIUS;
+    ad_lowerCapsLength = LOWER_CAPSULE_LENGTH;
+    ad_lowerCapsRadius = LOWER_CAPSULE_RADIUS;
+
         // SE3 objects
     pinocchio::SE3Tpl<ADScalar> ad_f1Mcaps1(FRAME1_TO_CAPS1_ROTATION, FRAME1_TO_CAPS1_TRANSLATION);
     pinocchio::SE3Tpl<ADScalar> ad_f2Mcaps2(FRAME2_TO_CAPS2_ROTATION, FRAME2_TO_CAPS2_TRANSLATION);
     
     // Generate the code for the specified frames and capsule parameters, and compile it as library
-    ADFun genFun = tapeADFunEnd2End(rmodel, frameInd1, frameInd2, ad_capsLength, ad_capsRadius, ad_f1Mcaps1, ad_f2Mcaps2);
+    ADFun genFun = tapeADFunEnd2End(rmodel, frameInd1, frameInd2, ad_upperCapsLength, ad_upperCapsRadius, ad_lowerCapsLength, ad_lowerCapsRadius, ad_f1Mcaps1, ad_f2Mcaps2);
     generateCompileCLib("end2end_" + frame1Name + "_" + frame2Name,genFun);
     // Print the C code to the console
     std::cout << "---- CODE GENERATION ----" << std::endl;
@@ -138,7 +147,7 @@ int main(int argc, char* argv[])
 
         // FCL check 
     auto start_fcl = high_resolution_clock::now();
-    double fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, CAPSULE_LENGTH, CAPSULE_RADIUS, f1Mcaps1, f2Mcaps2);
+    double fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, UPPER_CAPSULE_LENGTH, UPPER_CAPSULE_RADIUS, LOWER_CAPSULE_LENGTH, LOWER_CAPSULE_RADIUS, f1Mcaps1, f2Mcaps2);
     auto stop_fcl = high_resolution_clock::now(); 
     auto duration_fcl = duration_cast<microseconds>(stop_fcl - start_fcl);
 
@@ -164,7 +173,7 @@ int main(int argc, char* argv[])
         X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
 
         model->ForwardZero(X_test, Y_test);
-        fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, CAPSULE_LENGTH, CAPSULE_RADIUS, f1Mcaps1, f2Mcaps2);
+        fcl_dist = getFCLResult(rmodel,gmodel,rdata,X_test,frame1Name, frame2Name, UPPER_CAPSULE_LENGTH, UPPER_CAPSULE_RADIUS, LOWER_CAPSULE_LENGTH, LOWER_CAPSULE_RADIUS, f1Mcaps1, f2Mcaps2);
 
         dist_err = std::abs(fcl_dist - Y_test[0]);
         if(dist_err > max_dist_err)
