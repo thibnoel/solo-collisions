@@ -61,7 +61,6 @@ void generateCompileCLib(std::string func_name, ADFun& fun)
     compiler.setCompileFlags(compile_options);
     dynamicLibManager.createDynamicLibrary(compiler, false);
 
-
     SaveFilesModelLibraryProcessor<double> p(libcgen);
     p.saveSources();
     //std::unique_ptr<DynamicLib<Scalar> > dynamicLib;
