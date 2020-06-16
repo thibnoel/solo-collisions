@@ -1,3 +1,4 @@
+#include <utility>  
 #include <pinocchio/parsers/urdf.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/frames.hpp>
@@ -5,6 +6,9 @@
 
 using namespace pinocchio;
 
+/**********************************************************************************************************
+                Now deprecated
+**********************************************************************************************************/               
 // Function to generate
 // Wrapper for pinocchio::forwardKinematics for frames f1, f2
 template<typename Scalar>
@@ -14,6 +18,25 @@ pinocchio::SE3Tpl<Scalar> relativePlacement(pinocchio::ModelTpl<Scalar> model, p
     updateFramePlacements(model, data);
     SE3Tpl<Scalar> oMf1 = data.oMf[frameInd1];
     SE3Tpl<Scalar> oMf2 = data.oMf[frameInd2];
+    return oMf1.inverse() * oMf2;
+}
+/**********************************************************************************************************
+**********************************************************************************************************/   
+
+// Split the previous function in 2 to avoid FK calls duplication
+// Compute the forward kinematics
+template<typename Scalar>
+void computeFK(pinocchio::ModelTpl<Scalar> model, pinocchio::DataTpl<Scalar> data, Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& config)
+{
+    forwardKinematics(model, data, config);
+    updateFramePlacements(model, data);
+}
+// Returns the relative placement of frames 1,2 from the updated model
+template<typename Scalar>
+pinocchio::SE3Tpl<Scalar> getRelativePlacement(pinocchio::DataTpl<Scalar> updatedData, std::pair<int, int> framesPair)
+{
+    SE3Tpl<Scalar> oMf1 = updatedData.oMf[framesPair.first];
+    SE3Tpl<Scalar> oMf2 = updatedData.oMf[framesPair.second];
     return oMf1.inverse() * oMf2;
 }
 

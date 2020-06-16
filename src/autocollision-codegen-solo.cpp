@@ -1,14 +1,116 @@
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
-#include "autocollision-code-generation.hpp"
+//#include "autocollision-code-generation.hpp"
+#include "autocollision-fcl-check.hpp"
 #include <chrono> 
+#include <sstream>
 
 using namespace std::chrono; 
 using namespace pinocchio;
 
-int main()
+std::pair<int,int>* getSoloLegsFramesPairs(pinocchio::Model rmodel)
 {
+    // Frames pairs
+    static std::pair<int,int> framesPairs[24] = {// FL - FR
+                                          getFramesPair("FL_UPPER_LEG","FR_UPPER_LEG", rmodel),
+                                          getFramesPair("FL_UPPER_LEG","FR_LOWER_LEG", rmodel),
+                                          getFramesPair("FL_LOWER_LEG","FR_UPPER_LEG", rmodel),
+                                          getFramesPair("FL_LOWER_LEG","FR_LOWER_LEG", rmodel),
+                                          // FL - HL
+                                          getFramesPair("FL_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                          getFramesPair("FL_UPPER_LEG","HL_LOWER_LEG", rmodel),
+                                          getFramesPair("FL_LOWER_LEG","HL_UPPER_LEG", rmodel),
+                                          getFramesPair("FL_LOWER_LEG","HL_LOWER_LEG", rmodel),
+                                          // FL - HR
+                                          getFramesPair("FL_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                          getFramesPair("FL_UPPER_LEG","HR_LOWER_LEG", rmodel),
+                                          getFramesPair("FL_LOWER_LEG","HR_UPPER_LEG", rmodel),
+                                          getFramesPair("FL_LOWER_LEG","HR_LOWER_LEG", rmodel),
+                                          // FR - HL
+                                          getFramesPair("FR_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                          getFramesPair("FR_UPPER_LEG","HL_LOWER_LEG", rmodel),
+                                          getFramesPair("FR_LOWER_LEG","HL_UPPER_LEG", rmodel),
+                                          getFramesPair("FR_LOWER_LEG","HL_LOWER_LEG", rmodel),
+                                          // FR - HR
+                                          getFramesPair("FR_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                          getFramesPair("FR_UPPER_LEG","HR_LOWER_LEG", rmodel),
+                                          getFramesPair("FR_LOWER_LEG","HR_UPPER_LEG", rmodel),
+                                          getFramesPair("FR_LOWER_LEG","HR_LOWER_LEG", rmodel),
+                                          // HL - HR
+                                          getFramesPair("HL_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                          getFramesPair("HL_UPPER_LEG","HR_LOWER_LEG", rmodel),
+                                          getFramesPair("HL_LOWER_LEG","HR_UPPER_LEG", rmodel),
+                                          getFramesPair("HL_LOWER_LEG","HR_LOWER_LEG", rmodel)};
+    return framesPairs;
+}
+
+std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* getSoloLegsADCapsPairs(Capsule<ADScalar>* ADCapsApprox)
+{
+    // AD capsules pairs (code gen. arg.)
+    static std::pair<Capsule<ADScalar>,Capsule<ADScalar>> ADCapsPairs[24] = {std::make_pair(ADCapsApprox[0], ADCapsApprox[2]),
+                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[3]),
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[2]),
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[3]),
+
+                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[0]),
+                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[1]),
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[0]),
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[1]),
+
+                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[2]),
+                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[3]),
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[2]),
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[3]),
+
+                                                                    std::make_pair(ADCapsApprox[2], ADCapsApprox[0]),
+                                                                    std::make_pair(ADCapsApprox[2], ADCapsApprox[1]),
+                                                                    std::make_pair(ADCapsApprox[3], ADCapsApprox[0]),
+                                                                    std::make_pair(ADCapsApprox[3], ADCapsApprox[1]),
+
+                                                                    std::make_pair(ADCapsApprox[2], ADCapsApprox[2]),
+                                                                    std::make_pair(ADCapsApprox[2], ADCapsApprox[3]),
+                                                                    std::make_pair(ADCapsApprox[3], ADCapsApprox[2]),
+                                                                    std::make_pair(ADCapsApprox[3], ADCapsApprox[3]),
+
+                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[2]),
+                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[3]),
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[2]),
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[3])};
+    return ADCapsPairs;
+}
+
+Eigen::Matrix<double, 8, 8> reshapeCodegenResult(Eigen::Matrix<double, Eigen::Dynamic, 1> y)
+{
+    Eigen::Matrix<double, 8, 8> result;
+    result << 0.0 , 0.0 , y[0], y[1], y[4] , y[5] , y[8] , y[9],
+              0.0 , 0.0 , y[2], y[3], y[6] , y[7] , y[10], y[11],
+              y[0], y[2], 0.0 , 0.0 , y[12], y[13], y[16], y[17],
+              y[1], y[3], 0.0 , 0.0 , y[14], y[15], y[18], y[19],
+              y[4], y[6], y[12], y[14], 0.0, 0.0 , y[20] , y[21],
+              y[5], y[7], y[13], y[15], 0.0, 0.0 , y[22] , y[23],
+              y[8],y[10], y[16], y[18], y[20], y[22], 0.0, 0.0 ,  
+              y[9],y[11], y[17], y[19], y[21], y[23], 0.0, 0.0 ;
+    return result;
+
+}
+
+int main(int argc, char *argv[])
+{
+    // Check the number of parameters
+    if (argc < 2) {
+        // Provide usage feedback
+        std::cerr << "Usage: " << argv[0] << " nb_pairs" << std::endl;
+        return 1;
+    }
+    std::istringstream ss(argv[1]);
+    int nb_pairs;
+    if (!(ss >> nb_pairs)) {
+        std::cerr << "Invalid number: " << argv[1] << '\n';
+    } else if (!ss.eof()) {
+        std::cerr << "Trailing characters after number: " << argv[1] << '\n';
+    }
+
     // Initialize random seed 
     srand((unsigned int) time(0));
 
@@ -29,77 +131,76 @@ int main()
     Data rdata(rmodel); 
 
     // Capsules geometries
-    const double UPPER_CAPSULE_RADIUS = 0.02;
-    Eigen::Matrix<double, 3, 1> UPPER_CAPSULE_A;
-    Eigen::Matrix<double, 3, 1> UPPER_CAPSULE_B;
-    UPPER_CAPSULE_A << 0.0, 0.0, 0.1;
-    UPPER_CAPSULE_B << 0.0, 0.0, -0.1;
+    const double LEFT_UPPER_CAPSULE_RADIUS = 0.016;
+    Eigen::Matrix<double, 3, 1> LEFT_UPPER_CAPSULE_A;
+    Eigen::Matrix<double, 3, 1> LEFT_UPPER_CAPSULE_B;
+    LEFT_UPPER_CAPSULE_A << 0.0, 0.0, 0.1;
+    LEFT_UPPER_CAPSULE_B << 0.0, 0.0, -0.1;
     
-    const double LOWER_CAPSULE_RADIUS = 0.016;
-    Eigen::Matrix<double, 3, 1> LOWER_CAPSULE_A;
-    Eigen::Matrix<double, 3, 1> LOWER_CAPSULE_B;
-    LOWER_CAPSULE_A << 0.0, 0.0, 0.08;
-    LOWER_CAPSULE_B << 0.0, 0.0, -0.08;
+    const double LEFT_LOWER_CAPSULE_RADIUS = 0.015;
+    Eigen::Matrix<double, 3, 1> LEFT_LOWER_CAPSULE_A;
+    Eigen::Matrix<double, 3, 1> LEFT_LOWER_CAPSULE_B;
+    LEFT_LOWER_CAPSULE_A << 0.0, 0.0, 0.07;
+    LEFT_LOWER_CAPSULE_B << 0.0, 0.0, -0.07;
+
+    const double RIGHT_UPPER_CAPSULE_RADIUS = LEFT_UPPER_CAPSULE_RADIUS;
+    Eigen::Matrix<double, 3, 1> RIGHT_UPPER_CAPSULE_A;
+    Eigen::Matrix<double, 3, 1> RIGHT_UPPER_CAPSULE_B;
+    RIGHT_UPPER_CAPSULE_A << 0.0, 0.0, 0.1;
+    RIGHT_UPPER_CAPSULE_B << 0.0, 0.0, -0.1;
+    
+    const double RIGHT_LOWER_CAPSULE_RADIUS = LEFT_LOWER_CAPSULE_RADIUS;
+    Eigen::Matrix<double, 3, 1> RIGHT_LOWER_CAPSULE_A;
+    Eigen::Matrix<double, 3, 1> RIGHT_LOWER_CAPSULE_B;
+    RIGHT_LOWER_CAPSULE_A << 0.0, 0.0, 0.07;
+    RIGHT_LOWER_CAPSULE_B << 0.0, 0.0, -0.07;
     
    
     /***************************************************************************
     *                               Code generation
     ***************************************************************************/
-
-     // Frames pairs
-    std::pair<int,int> framesPairs[4] = {getFramesPair("FL_UPPER_LEG","FR_UPPER_LEG", rmodel),
-                                          getFramesPair("FL_UPPER_LEG","FR_LOWER_LEG", rmodel),
-                                          getFramesPair("FL_LOWER_LEG","FR_UPPER_LEG", rmodel),
-                                          getFramesPair("FL_LOWER_LEG","FR_LOWER_LEG", rmodel)};
-
     // Predefine frames and capsules pairs (nb of pairs evaluated chosen in tapeADFun)
-    // Predefined double capsules
-    struct Capsule<double> LeftUpperCaps = {UPPER_CAPSULE_A, UPPER_CAPSULE_B, UPPER_CAPSULE_RADIUS};
-    struct Capsule<double> RightUpperCaps = {UPPER_CAPSULE_A, UPPER_CAPSULE_B, UPPER_CAPSULE_RADIUS};
-    struct Capsule<double> LeftLowerCaps = {LOWER_CAPSULE_A, LOWER_CAPSULE_B, LOWER_CAPSULE_RADIUS};
-    struct Capsule<double> RightLowerCaps = {LOWER_CAPSULE_A, LOWER_CAPSULE_B, LOWER_CAPSULE_RADIUS};
+        // Predefined frames pairs
+    std::pair<int,int>* framesPairs = getSoloLegsFramesPairs(rmodel);
+        // Predefined double capsules
+    struct Capsule<double> LeftUpperCaps = {LEFT_UPPER_CAPSULE_A, LEFT_UPPER_CAPSULE_B, LEFT_UPPER_CAPSULE_RADIUS};
+    struct Capsule<double> LeftLowerCaps = {LEFT_LOWER_CAPSULE_A, LEFT_LOWER_CAPSULE_B, LEFT_LOWER_CAPSULE_RADIUS};
+    struct Capsule<double> RightUpperCaps = {RIGHT_UPPER_CAPSULE_A, RIGHT_UPPER_CAPSULE_B, RIGHT_UPPER_CAPSULE_RADIUS};
+    struct Capsule<double> RightLowerCaps = {RIGHT_LOWER_CAPSULE_A, RIGHT_LOWER_CAPSULE_B, RIGHT_LOWER_CAPSULE_RADIUS};
 
+    struct Capsule<double> capsulesApprox[4] = {LeftUpperCaps, LeftLowerCaps, RightUpperCaps, RightLowerCaps};
         // Predefined AD capsules
-    struct Capsule<ADScalar> ADLeftUpperCaps = LeftUpperCaps.cast<ADScalar>(); //{ad_upperCapsLength, ad_upperCapsRadius, ad_f1Mcaps1};
-    struct Capsule<ADScalar> ADRightUpperCaps = RightUpperCaps.cast<ADScalar>();//{ad_upperCapsLength, ad_upperCapsRadius, ad_f2Mcaps2};
-    struct Capsule<ADScalar> ADLeftLowerCaps = LeftLowerCaps.cast<ADScalar>();//{ad_lowerCapsLength, ad_lowerCapsRadius, ad_f1Mcaps1};
-    struct Capsule<ADScalar> ADRightLowerCaps = RightLowerCaps.cast<ADScalar>();//{ad_lowerCapsLength, ad_lowerCapsRadius, ad_f2Mcaps2};
+    struct Capsule<ADScalar> ADLeftUpperCaps = LeftUpperCaps.cast<ADScalar>(); 
+    struct Capsule<ADScalar> ADRightUpperCaps = RightUpperCaps.cast<ADScalar>();
+    struct Capsule<ADScalar> ADLeftLowerCaps = LeftLowerCaps.cast<ADScalar>();
+    struct Capsule<ADScalar> ADRightLowerCaps = RightLowerCaps.cast<ADScalar>();
+
+    struct Capsule<ADScalar> ADCapsulesApprox[4] = {ADLeftUpperCaps, ADLeftLowerCaps, ADRightUpperCaps, ADRightLowerCaps};
        
-        // AD Capsules pairs (code gen arg.)
-    std::pair<Capsule<ADScalar>,Capsule<ADScalar>> ADCapsPairs[4] = {std::make_pair(ADLeftUpperCaps, ADRightUpperCaps),
-                                                                    std::make_pair(ADLeftUpperCaps, ADRightLowerCaps),
-                                                                    std::make_pair(ADLeftLowerCaps, ADRightUpperCaps),
-                                                                    std::make_pair(ADLeftLowerCaps, ADRightLowerCaps)};
-    
-       
-        // double Capsules pairs (FCL check arg.)
-    std::pair<Capsule<double>,Capsule<double>> doubleCapsPairs[4] = {std::make_pair(LeftUpperCaps, RightUpperCaps),
-                                                                    std::make_pair(LeftUpperCaps, RightLowerCaps),
-                                                                    std::make_pair(LeftLowerCaps, RightUpperCaps),
-                                                                    std::make_pair(LeftLowerCaps, RightLowerCaps)};
+        // AD Capsules pairs (code gen. arg.)
+    std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* ADCapsPairs = getSoloLegsADCapsPairs(ADCapsulesApprox);                                                                
 
     // Generate the code for the specified frames and capsule parameters, and compile it as library
-    ADFun genFun = tapeADCapsulesDistanceCheck(rmodel, framesPairs, ADCapsPairs, 4);
-    //std::cout << generateCSourceCode(genFun, rmodel.nq) << std::endl;
-    generateCompileCLib("autocollision_solo",genFun);
+    ADFun genFun = tapeADCapsulesDistanceCheck(rmodel, framesPairs, ADCapsPairs, nb_pairs);
+    generateCompileCLib("solo_autocollision", genFun);
 
     /***************************************************************************
     *                      Generated code evaluation
     ***************************************************************************/
-    const std::string LIBRARY_NAME = "./libCGautocollision_solo";
+    const std::string LIBRARY_NAME = "./libCGsolo_autocollision";
     const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
-    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("autocollision_solo");
+    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision");
 
     // Generated code evaluation
         // Input : Get a random config.
     Eigen::Matrix<double, Eigen::Dynamic, 1> X_test;
-    X_test.resize(rmodel.nq);
+    //X_test.resize(rmodel.nq);
     X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
     //X_test = Eigen::Matrix<double,12,1>::Zero(12,1);
         // Output : distance
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;
-    Y_test.resize(4);
+    Y_test.resize(24);
 
     // Function evaluation with start and stop timestamps
     auto start_cg = high_resolution_clock::now();
@@ -107,17 +208,18 @@ int main()
     auto stop_cg = high_resolution_clock::now(); 
     auto duration_cg = duration_cast<nanoseconds>(stop_cg - start_cg); 
 
+
     /***************************************************************************
     *                              FCL evaluation
     ***************************************************************************/
-    double fcl_dist0;
-    fcl_dist0 = getPairFCLResult(rmodel,gmodel,rdata,X_test, framesPairs[0], doubleCapsPairs[0]);
+    Eigen::Matrix<double, 8, 8> fcl_result;
+    fcl_result = getSoloFCLResult(rmodel,gmodel,rdata,X_test,capsulesApprox);
     // Print output
     std::cout << "---- CODE EVALUATION ----" << std::endl;
     std::cout << "X = \n" << X_test << std::endl;
-    std::cout << "\tDist. result (codegen): \n" << Y_test << std::endl;
-    std::cout << "Time taken by function: " << ((int)duration_cg.count())*0.001 << " microseconds" << std::endl; 
-    std::cout << "\tDist. result (FCL): \n" << fcl_dist0 << std::endl;
+    std::cout << "\tDist. result (codegen): \n" << reshapeCodegenResult(Y_test) << std::endl;
+    std::cout << "\nTime taken by function: " << ((int)duration_cg.count())*0.001 << " microseconds" << std::endl; 
+    std::cout << "\n\tDist. result (FCL): \n" << fcl_result << std::endl;
     std::cout << "\n" << std::endl;    
 
 }

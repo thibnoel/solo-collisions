@@ -1,4 +1,5 @@
 #include <pinocchio/codegen/cppadcg.hpp>
+#include <vector>
 
 #ifndef __CODEGEN_HELPER_HPP
 #define __CODEGEN_HELPER_HPP

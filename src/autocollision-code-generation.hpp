@@ -43,6 +43,7 @@ struct Capsule
         Scalar c = upDir.transpose()*capsDir;
         Scalar s = v.norm();
 
+        // Check parallel case
         if(s > 1e-5)
         {
             Eigen::Matrix<Scalar, 3, 3> kmat;
@@ -54,7 +55,7 @@ struct Capsule
             rotation = Eigen::Matrix<Scalar, 3, 3>::Identity(3,3);
         }
 
-        static pinocchio::SE3Tpl<Scalar> fMc(rotation, translation);
+        const pinocchio::SE3Tpl<Scalar> fMc(rotation, translation);
 
         return fMc;
     }
@@ -73,7 +74,7 @@ struct Capsule
         AltScalar radius_cast;
         radius_cast = radius;
         //pinocchio::SE3Tpl<AltScalar> fMc_cast(fMc.rotation(), fMc.translation());
-        static struct Capsule<AltScalar> caps_cast = {a_cast, b_cast, radius_cast};
+        const struct Capsule<AltScalar> caps_cast = {a_cast, b_cast, radius_cast};
 
         return caps_cast;
     }
@@ -83,18 +84,6 @@ struct Capsule
 std::pair<int,int> getFramesPair(std::string frameName1, std::string frameName2, pinocchio::Model model)
 {
     return std::make_pair((int)model.getFrameId(frameName1),(int)model.getFrameId(frameName2));
-}
-
-// SOLO-specific
-// Returns a list[4] of pairs of int representing all the collision pairs between 2 legs of SOLO
-// The legs are given are passed as strings from the following list : {"FL","FR","HL","HR"}
-std::pair<int,int>* getLegToLegFramesPairs(std::string leg1, std::string leg2, pinocchio::Model model)
-{
-    static std::pair<int,int> pairs[4] = {getFramesPair(leg1 + "_UPPER_LEG", leg2 + "_UPPER_LEG", model),
-                                        getFramesPair(leg1 + "_UPPER_LEG", leg2 + "_LOWER_LEG", model),
-                                        getFramesPair(leg1 + "_LOWER_LEG", leg2 + "_UPPER_LEG", model),
-                                        getFramesPair(leg1 + "_LOWER_LEG", leg2 + "_LOWER_LEG", model)};
-    return pairs;
 }
 
 // Function to generate
@@ -161,63 +150,4 @@ ADFun tapeADCapsulesDistanceCheck(pinocchio::Model model,
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
-}
-
-// Helper function : returns the jMf SE3 placement given a frame f, j being its parent joint
-pinocchio::SE3 jointToFrameRelativePlacement(pinocchio::Model model, pinocchio::Data data, int frameInd)
-{
-    //forwardKinematics(model, data, config);
-    //updateFramePlacements(model, data);
-    SE3 oMf = data.oMf[frameInd];
-    SE3 oMj = data.oMi[model.frames[frameInd].parent];
-    return oMj.inverse() * oMf;
-}
-
-// Get the result of the FCL evaluation to test against
-    // Modifies the model ! NOT GOOD
-double getPairFCLResult(pinocchio::Model& model, 
-                    pinocchio::GeometryModel& gmodel, 
-                    pinocchio::Data& data, 
-                    Eigen::Matrix<double, Eigen::Dynamic, 1>& config, 
-                    std::pair<int,int> framesPair,
-                    std::pair<Capsule<double>,Capsule<double>> capsulesPair)
-{
-    typedef boost::shared_ptr< fcl::CollisionGeometry > CollisionGeometryPtr;
-
-    pinocchio::SE3 j1Mframe1 = jointToFrameRelativePlacement(model, data, framesPair.first);
-    pinocchio::SE3 j2Mframe2 = jointToFrameRelativePlacement(model, data, framesPair.second);
-
-    pinocchio::SE3 f1Mc1 = capsulesPair.first.get_fMc();
-    pinocchio::SE3 f2Mc2 = capsulesPair.second.get_fMc();
-
-    // Initialize fcl geometries
-    const CollisionGeometryPtr caps_geom1 (new hpp::fcl::Capsule(capsulesPair.first.radius, capsulesPair.first.getLength())); 
-    const CollisionGeometryPtr caps_geom2 (new hpp::fcl::Capsule(capsulesPair.second.radius, capsulesPair.second.getLength()));
-
-    // Initialize geometry objects
-        // Capsule 1
-    std::string caps1_name = std::string("caps1_" + std::to_string(framesPair.first));
-    pinocchio::GeometryObject caps1_gobj(caps1_name,
-                                         framesPair.first,
-                                         model.frames[framesPair.first].parent,
-                                         caps_geom1, 
-                                         j1Mframe1.act(f1Mc1));    
-        // Capsule 2
-    std::string caps2_name = std::string("caps2_" + std::to_string(framesPair.second));  
-    pinocchio::GeometryObject caps2_gobj(caps2_name,
-                                         framesPair.second,
-                                         model.frames[framesPair.second].parent,
-                                         caps_geom2, 
-                                         j2Mframe2.act(f2Mc2));     
-    // Add capsules to the model and make them a collision pair
-    pinocchio::GeomIndex caps1 = gmodel.addGeometryObject(caps1_gobj, model);
-    pinocchio::GeomIndex caps2 = gmodel.addGeometryObject(caps2_gobj, model); 
-    gmodel.addCollisionPair(pinocchio::CollisionPair(caps1,caps2));
-
-    // Compute and return the distance result
-    pinocchio::GeometryData gdata(gmodel);
-    pinocchio::computeDistances(model,data,gmodel,gdata,config);
-    std::vector< fcl::DistanceResult > collisions_dist = gdata.distanceResults;              
-    return collisions_dist[gmodel.findCollisionPair(pinocchio::CollisionPair(caps1,caps2))].min_distance;                                                                                                                                      
-
 }
