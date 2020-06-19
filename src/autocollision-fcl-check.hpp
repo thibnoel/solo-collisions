@@ -1,4 +1,4 @@
-#include "autocollision-code-generation.hpp"
+#include "autocollision-capsules-code-generation.hpp"
 
 typedef boost::shared_ptr< fcl::CollisionGeometry > CollisionGeometryPtr;
 // Helper function : returns the jMf SE3 placement given a frame f, j being its parent joint
