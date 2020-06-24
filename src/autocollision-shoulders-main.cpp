@@ -35,7 +35,7 @@ int main()
     ad_out.resize(size,size);
 
     // Generate the code for the specified shoulder, based on an FT coeffs matrix
-    ADFun genFun = tapeADShoulderDistanceCheck(ad_out);
+    ADFun genFun = tapeAD4ShouldersDistanceCheck(ad_out);
     generateCompileCLib("solo_shoulder_autocollision", genFun);
 
     std::cout << "Size : " << size << "x" << size << std::endl;

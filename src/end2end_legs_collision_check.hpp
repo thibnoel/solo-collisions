@@ -157,25 +157,6 @@ Eigen::Matrix<Scalar, 4, 1> legToLegDistanceCheck(pinocchio::ModelTpl<Scalar> mo
     return distVec;                                           
 }
 
-// MOVED TO autocollision-code-generation.hpp
-/*
-std::pair<int,int> getFramesPair(std::string frameName1, std::string frameName2, pinocchio::Model model)
-{
-    return std::make_pair((int)model.getFrameId(frameName1),(int)model.getFrameId(frameName2));
-}
-
-std::pair<int,int>* getLegToLegPairs(std::string leg1, std::string leg2, pinocchio::Model model)
-{
-    static std::pair<int,int> pairs[4] = {getFramesPair(leg1 + "_UPPER_LEG", leg2 + "_UPPER_LEG", model),
-                                   getFramesPair(leg1 + "_UPPER_LEG", leg2 + "_LOWER_LEG", model),
-                                   getFramesPair(leg1 + "_LOWER_LEG", leg2 + "_UPPER_LEG", model),
-                                   getFramesPair(leg1 + "_LOWER_LEG", leg2 + "_LOWER_LEG", model)};
-
-    return pairs;
-}
-*/
-
-
 // Returns the distances between all leg segments as a 8x8 matrix (symetric with null diagonal -> 24 coeffs determin the matrix)
 // Matrix Shape : 
 //      FLU     FLL     FRU     FRL     HLU     HLL     HRU     HRL     

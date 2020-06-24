@@ -140,6 +140,7 @@ def colMapToDistField(col_map):
         dist_field = []
         for i in range(len(col_map)):
                 dist_field_j = []
+                print("Computed line {}".format(i))
                 for j in range(len(col_map)):
                         curr_point_dist = float("inf")
                         sign = 1
@@ -154,9 +155,3 @@ def colMapToDistField(col_map):
                         dist_field_j.append(sign*np.sqrt(curr_point_dist))
                 dist_field.append(dist_field_j)
         return dist_field
-
-def new_colMapToDistField(col_map):
-        traj1 = np.array(followBoundary(col_map))
-        traj2 = np.array(followBoundary(col_map, first_dir=2))
-
-        traj1_offset = traj1 + np.array(len(traj1)*[[0,-len(col_map)]])

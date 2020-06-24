@@ -101,7 +101,7 @@ Scalar evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen:
     return CppAD::sqrt(eval.real()*eval.real() - eval.imag()*eval.imag());
 }
 
-// Generates the model for the function f(q, pair) = dist. between frames of given pair
+// Generates the model for the function f(q, pair) = dist. between frames of given pair (defined by the FT coeffs!)
 ADFun tapeADShoulderDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs)
 {   
     // Initnialize AD input and output
@@ -116,6 +116,33 @@ ADFun tapeADShoulderDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen::D
     // Tape the function
     ADScalar d = evaluateFromFT<ADScalar>(FTcoeffs, ad_X[0], ad_X[1]);
     ad_Y[0] = d;
+    ad_fun.Dependent(ad_X, ad_Y);
+
+    return ad_fun;
+}
+
+// Same for all shoulders
+// The collision map (FTcoeffs) is the same for all shoulders (symetry), we use the Front Left shoulder as reference 
+ADFun tapeAD4ShouldersDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen::Dynamic, Eigen::Dynamic> FL_FTcoeffs)
+{
+    // Initnialize AD input and output
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
+    ad_X.resize(8);
+    ad_Y.resize(4);
+    CppAD::Independent(ad_X);
+    // Initialize AD function
+    ADFun ad_fun;
+
+    // Tape the function
+    ADScalar dFL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[0], ad_X[1]);
+    ADScalar dFR = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[2], ad_X[3]); // TODO : signs on the adX comp.
+    ADScalar dHL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[4], ad_X[5]); // TODO : signs on the adX comp.
+    ADScalar dHR = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[6], ad_X[7]); // TODO : signs on the adX comp.
+    ad_Y[0] = dFL;
+    ad_Y[1] = dFR;
+    ad_Y[2] = dHL;
+    ad_Y[3] = dHR;
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
