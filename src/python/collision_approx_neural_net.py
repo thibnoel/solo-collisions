@@ -2,16 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from solo12_shoulder_collision_utils import followBoundary, colMapToDistField
 from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler  
 
 # Load the collision map from file
-res = 500
+res = 200
 col_map_file = './npy_data/collision_map_centered_res{}.npy'.format(res)
 col_map = np.load(col_map_file, allow_pickle=True)
 col_map = col_map.T
 
 dist_field_file = './npy_data/updated_collision_map_distance_res{}.npy'.format(res)
 dist_field = np.load(dist_field_file, allow_pickle=True)
-
+dist_field = dist_field - np.min(dist_field)
 
 def buildData(distance2D):
     n,m = distance2D.shape
@@ -34,13 +35,42 @@ def buildPred(reg, distance2D):
         pred.append(pred_i)
     return np.array(pred)
 
+
+def computePredictionError(pred_dist, dist_field, offset, optim=False, optimRate=1):
+    def optimOffset(wrong_pred, pred_error, offset):
+        while(wrong_pred > 0):
+            offset = offset + max(wrong_pred*0.0001, optimRate)
+            pred_error = (pred_dist > offset) - np.asarray((dist_field > 0), dtype=float)
+            wrong_pred = np.count_nonzero(pred_error > 0)
+        return wrong_pred, pred_error, offset
+
+    pred_error = (pred_dist > offset) - np.asarray((dist_field > 0), dtype=float)
+    wrong_pred = np.count_nonzero(pred_error > 0)
+    if(optim):
+        wrong_pred, pred_error, offset = optimOffset(wrong_pred, pred_error, offset)
+    lost_space = np.count_nonzero(pred_error != 0)
+
+    return wrong_pred, lost_space, pred_error
+
+
 X,Y = buildData(dist_field)
-reg = MLPRegressor(hidden_layer_sizes=(12,6),verbose=True)
+reg = MLPRegressor(hidden_layer_sizes=(12,8,6,4),verbose=True, max_iter=400)
+
+
+#scaler = StandardScaler()
+#scaler.fit(X)
+#X = scaler.transform(X)  # doctest: +SKIP
+
 reg.fit(X,Y)
 
 pred = buildPred(reg, dist_field)
+pred = pred.flatten().reshape(res,res)
+
+wrong_pred, lost_space, pred_error = computePredictionError(pred, dist_field, 0, optim=True, optimRate=1)
 
 plt.imshow(pred, cmap=plt.cm.RdYlGn)
 plt.figure()
 plt.imshow(dist_field, cmap=plt.cm.RdYlGn)
+plt.figure()
+plt.imshow(pred_error)
 plt.show()
