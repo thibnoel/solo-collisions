@@ -98,7 +98,7 @@ Scalar evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen:
     std::complex<Scalar> scale;
     scale = std::complex<double>{(double)n*m,0};
     eval/=scale;
-    return CppAD::sqrt(eval.real()*eval.real() - eval.imag()*eval.imag());
+    return CppAD::sqrt(eval.real()*eval.real() + eval.imag()*eval.imag());
 }
 
 // Generates the model for the function f(q, pair) = dist. between frames of given pair (defined by the FT coeffs!)
@@ -136,9 +136,9 @@ ADFun tapeAD4ShouldersDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen:
 
     // Tape the function
     ADScalar dFL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[0], ad_X[1]);
-    ADScalar dFR = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[2], ad_X[3]); // TODO : signs on the adX comp.
-    ADScalar dHL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[4], ad_X[5]); // TODO : signs on the adX comp.
-    ADScalar dHR = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[6], ad_X[7]); // TODO : signs on the adX comp.
+    ADScalar dFR = evaluateFromFT<ADScalar>(FL_FTcoeffs, -ad_X[2], ad_X[3]); // coeff : opposite on x dir
+    ADScalar dHL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[4], -ad_X[5]); // coeff : opposite on y dir
+    ADScalar dHR = evaluateFromFT<ADScalar>(FL_FTcoeffs, -ad_X[6], -ad_X[7]); // coeff : opposite on both dirs
     ad_Y[0] = dFL;
     ad_Y[1] = dFR;
     ad_Y[2] = dHL;

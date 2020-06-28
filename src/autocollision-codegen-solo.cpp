@@ -12,28 +12,28 @@ using namespace pinocchio;
 std::pair<int,int>* getSoloLegsFramesPairs(pinocchio::Model rmodel)
 {
     // Frames pairs
-    static std::pair<int,int> framesPairs[24] = {// FL - FR
+    static std::pair<int,int> framesPairs[20] = {// FL - FR
                                           getFramesPair("FL_UPPER_LEG","FR_UPPER_LEG", rmodel),
                                           getFramesPair("FL_UPPER_LEG","FR_LOWER_LEG", rmodel),
                                           getFramesPair("FL_LOWER_LEG","FR_UPPER_LEG", rmodel),
                                           getFramesPair("FL_LOWER_LEG","FR_LOWER_LEG", rmodel),
                                           // FL - HL
-                                          getFramesPair("FL_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                          //getFramesPair("FL_UPPER_LEG","HL_UPPER_LEG", rmodel),
                                           getFramesPair("FL_UPPER_LEG","HL_LOWER_LEG", rmodel),
                                           getFramesPair("FL_LOWER_LEG","HL_UPPER_LEG", rmodel),
                                           getFramesPair("FL_LOWER_LEG","HL_LOWER_LEG", rmodel),
                                           // FL - HR
-                                          getFramesPair("FL_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                          //getFramesPair("FL_UPPER_LEG","HR_UPPER_LEG", rmodel),
                                           getFramesPair("FL_UPPER_LEG","HR_LOWER_LEG", rmodel),
                                           getFramesPair("FL_LOWER_LEG","HR_UPPER_LEG", rmodel),
                                           getFramesPair("FL_LOWER_LEG","HR_LOWER_LEG", rmodel),
                                           // FR - HL
-                                          getFramesPair("FR_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                          //getFramesPair("FR_UPPER_LEG","HL_UPPER_LEG", rmodel),
                                           getFramesPair("FR_UPPER_LEG","HL_LOWER_LEG", rmodel),
                                           getFramesPair("FR_LOWER_LEG","HL_UPPER_LEG", rmodel),
                                           getFramesPair("FR_LOWER_LEG","HL_LOWER_LEG", rmodel),
                                           // FR - HR
-                                          getFramesPair("FR_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                          //getFramesPair("FR_UPPER_LEG","HR_UPPER_LEG", rmodel),
                                           getFramesPair("FR_UPPER_LEG","HR_LOWER_LEG", rmodel),
                                           getFramesPair("FR_LOWER_LEG","HR_UPPER_LEG", rmodel),
                                           getFramesPair("FR_LOWER_LEG","HR_LOWER_LEG", rmodel),
@@ -41,34 +41,35 @@ std::pair<int,int>* getSoloLegsFramesPairs(pinocchio::Model rmodel)
                                           getFramesPair("HL_UPPER_LEG","HR_UPPER_LEG", rmodel),
                                           getFramesPair("HL_UPPER_LEG","HR_LOWER_LEG", rmodel),
                                           getFramesPair("HL_LOWER_LEG","HR_UPPER_LEG", rmodel),
-                                          getFramesPair("HL_LOWER_LEG","HR_LOWER_LEG", rmodel)};
+                                          getFramesPair("HL_LOWER_LEG","HR_LOWER_LEG", rmodel)
+                                          };
     return framesPairs;
 }
 
 std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* getSoloLegsADCapsPairs(Capsule<ADScalar>* ADCapsApprox)
 {
     // AD capsules pairs (code gen. arg.)
-    static std::pair<Capsule<ADScalar>,Capsule<ADScalar>> ADCapsPairs[24] = {std::make_pair(ADCapsApprox[0], ADCapsApprox[2]),
+    static std::pair<Capsule<ADScalar>,Capsule<ADScalar>> ADCapsPairs[20] = {std::make_pair(ADCapsApprox[0], ADCapsApprox[2]),
                                                                     std::make_pair(ADCapsApprox[0], ADCapsApprox[3]),
                                                                     std::make_pair(ADCapsApprox[1], ADCapsApprox[2]),
                                                                     std::make_pair(ADCapsApprox[1], ADCapsApprox[3]),
 
-                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[0]),
+                                                                    //std::make_pair(ADCapsApprox[0], ADCapsApprox[0]),
                                                                     std::make_pair(ADCapsApprox[0], ADCapsApprox[1]),
                                                                     std::make_pair(ADCapsApprox[1], ADCapsApprox[0]),
                                                                     std::make_pair(ADCapsApprox[1], ADCapsApprox[1]),
 
-                                                                    std::make_pair(ADCapsApprox[0], ADCapsApprox[2]),
+                                                                    //std::make_pair(ADCapsApprox[0], ADCapsApprox[2]),
                                                                     std::make_pair(ADCapsApprox[0], ADCapsApprox[3]),
                                                                     std::make_pair(ADCapsApprox[1], ADCapsApprox[2]),
                                                                     std::make_pair(ADCapsApprox[1], ADCapsApprox[3]),
 
-                                                                    std::make_pair(ADCapsApprox[2], ADCapsApprox[0]),
+                                                                    //std::make_pair(ADCapsApprox[2], ADCapsApprox[0]),
                                                                     std::make_pair(ADCapsApprox[2], ADCapsApprox[1]),
                                                                     std::make_pair(ADCapsApprox[3], ADCapsApprox[0]),
                                                                     std::make_pair(ADCapsApprox[3], ADCapsApprox[1]),
 
-                                                                    std::make_pair(ADCapsApprox[2], ADCapsApprox[2]),
+                                                                    //std::make_pair(ADCapsApprox[2], ADCapsApprox[2]),
                                                                     std::make_pair(ADCapsApprox[2], ADCapsApprox[3]),
                                                                     std::make_pair(ADCapsApprox[3], ADCapsApprox[2]),
                                                                     std::make_pair(ADCapsApprox[3], ADCapsApprox[3]),
@@ -76,7 +77,8 @@ std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* getSoloLegsADCapsPairs(Capsule<A
                                                                     std::make_pair(ADCapsApprox[0], ADCapsApprox[2]),
                                                                     std::make_pair(ADCapsApprox[0], ADCapsApprox[3]),
                                                                     std::make_pair(ADCapsApprox[1], ADCapsApprox[2]),
-                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[3])};
+                                                                    std::make_pair(ADCapsApprox[1], ADCapsApprox[3])
+                                                                    };
     return ADCapsPairs;
 }
 

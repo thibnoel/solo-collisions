@@ -17,6 +17,8 @@ def loadDistField(res):
     return np.load(dist_field_file, allow_pickle=True)
 
 dist_field = loadDistField(res)
+dist_field /= res
+dist_field *= 2*np.pi
 #dist_field = colMapToDistField(col_map)
 #np.save(dist_field,'./npy_data/updated_collision_map_distance_res{}.npy'.format(res))
 
@@ -196,7 +198,7 @@ def plotEstimData(dist_field, filterThreshold, dct=False):
     thresh_estim = getThreshTransform(dist_field, filterThreshold, dct=dct)
 
     invEstim = idctn(thresh_estim) if dct else abs(np.fft.ifft2(thresh_estim))
-    n_err, lost, error_map = computePredictionError(thresh_estim, dist_field, 0, dct=dct, optim=True, optimRate=0.01)
+    n_err, lost, error_map = computePredictionError(thresh_estim, dist_field, 0.1, dct=dct, optim=True, optimRate=0.001)
 
     plt.figure()
     # Raw distance field
@@ -284,19 +286,27 @@ def evalApproxDistDCT(theta_x, theta_y, dct_estim):
     return dist/(4*n*m)
 
 
-threshold = 12.5
+threshold = 8.3
 
 fft_estim = getThreshTransform(dist_field, threshold, dct=False)
 dct_estim = getThreshTransform(dist_field, threshold, dct=True)
 plotEstimData(dist_field, threshold, dct=False)
 
-np.savetxt("fft_estim_real.csv", fft_estim.real, delimiter=',')
-np.savetxt("fft_estim_imag.csv", fft_estim.imag, delimiter=',')
+#np.savetxt("fft_estim_real.csv", fft_estim.real, delimiter=',')
+#np.savetxt("fft_estim_imag.csv", fft_estim.imag, delimiter=',')
 
-theta_x = 250
-theta_y = 250
-print("Eval FFT: approx({:.2f},{:.2f}) = {}".format(theta_x, theta_y, evalApproxDistFFTOptim(theta_x, theta_y, np.fft.fftshift(fft_estim))))
-print("Closest true value : {}".format(np.fft.ifft2(fft_estim)[floor(theta_y), floor(theta_x)]))
+theta_x = 0
+theta_y = np.pi
+
+# x : [-Pi,Pi] -> [0,res]
+# y : [0,2*Pi] -> [0,res]
+arg_x = (theta_x + np.pi)*res/(2*np.pi)
+arg_y = theta_y*res/(2*np.pi)
+
+#theta_x = 250
+#theta_y = 250
+print("Eval FFT: approx({:.2f},{:.2f}) = {}".format(arg_x, arg_y, evalApproxDistFFT(arg_x, arg_y, np.fft.fftshift(fft_estim))))
+print("Closest true value : {}".format(np.fft.ifft2(fft_estim)[int(arg_y), int(arg_x)]))
 
 #print("\nEval DCT: approx({:.2f},{:.2f}) = {:.2f}".format(theta_x, theta_y, evalApproxDistDCT(theta_x, theta_y, dct_estim)))
 #print("Closest true value : {}".format(idctn(dct_estim)[floor(theta_y), floor(theta_x)]))

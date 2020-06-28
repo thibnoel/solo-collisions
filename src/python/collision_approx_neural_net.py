@@ -20,7 +20,7 @@ def buildData(distance2D):
     Y = []
     for i in range(n):
         for j in range(m):
-            X.append([i,j])
+            X.append([np.cos(2*np.pi*i/n),np.cos(2*np.pi*j/m)])
             Y.append(distance2D[i,j])
     return X,Y
 
@@ -31,7 +31,7 @@ def buildPred(reg, distance2D):
     for i in range(n):
         pred_i = []
         for j in range(m):
-            pred_i.append(reg.predict(np.array([i,j]).reshape(1,-1)))
+            pred_i.append(reg.predict(np.array([np.cos(2*np.pi*i/n),np.cos(2*np.pi*j/m)]).reshape(1,-1)))
         pred.append(pred_i)
     return np.array(pred)
 

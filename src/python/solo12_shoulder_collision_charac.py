@@ -58,7 +58,7 @@ def visualizeCollisionDist(p1, p2, name, color):
         gv.applyConfiguration('world/pinocchio/collisions/simple_patch_' + name + '_1',pio.SE3ToXYZQUATtuple(M2))
                 
 x_rot_range = [-np.pi, np.pi]
-y_rot_range = [-np.pi, np.pi]
+y_rot_range = [0, 2*np.pi]
 x_discrete_steps = 100
 y_discrete_steps = 100
 
