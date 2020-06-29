@@ -64,7 +64,7 @@ Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, 1> CSVtoFTcoeff(std::istream
 
 // Evaluate a 2D function from its FT coefficients 
 template <typename Scalar>
-Scalar evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs, Scalar x, Scalar y)
+std::complex<Scalar> evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs, Scalar x, Scalar y)
 {
     Scalar zero;
     zero = 0;
@@ -98,9 +98,33 @@ Scalar evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen:
     std::complex<Scalar> scale;
     scale = std::complex<double>{(double)n*m,0};
     eval/=scale;
-    return CppAD::sqrt(eval.real()*eval.real() + eval.imag()*eval.imag());
+    return eval;
+}
+// NOT TESTED
+template <typename Scalar> 
+Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, 1> evaluateJacobianFromFFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs, Scalar x, Scalar y)
+{
+    std::complex<Scalar> const_i;
+    const_i = std::complex<double>{0,1};
+
+    int m = (int)FTcoeffs.rows();
+    int n = (int)FTcoeffs.cols();
+
+    std::complex<Scalar> Jx;
+    std::complex<Scalar> Jy;
+    std::complex<Scalar> f0;
+
+    f0 = evaluateFromFT(FTcoeffs, x, y);
+    Jx = 2*PI*(x/m)*const_i*f0; 
+    Jy = 2*PI*(y/n)*const_i*f0;
+
+    Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, 1> J;
+    J.resize(2);
+    J << Jx, Jy;
+    return J;  
 }
 
+// Generates the model for the function f(q, pair) = dist. between frames of given pair
 // Generates the model for the function f(q, pair) = dist. between frames of given pair (defined by the FT coeffs!)
 ADFun tapeADShoulderDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs)
 {   
@@ -115,7 +139,7 @@ ADFun tapeADShoulderDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen::D
 
     // Tape the function
     ADScalar d = evaluateFromFT<ADScalar>(FTcoeffs, ad_X[0], ad_X[1]);
-    ad_Y[0] = d;
+    ad_Y[0] = CppAD::sqrt(d.real()*d.real() - d.imag()*d.imag());
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
