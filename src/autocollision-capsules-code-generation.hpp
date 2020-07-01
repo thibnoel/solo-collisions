@@ -116,6 +116,29 @@ Scalar runCapsulesDistanceCheck(pinocchio::DataTpl<Scalar> data,
                                          caps2P1[0], caps2P1[1], caps2P1[2])) - (capsulesPair.first.radius + capsulesPair.second.radius);
 }
 
+// Get the jacobian of the distance
+template<typename Scalar>
+Eigen::Matrix<Scalar, Eigen::Dynamic, 1> getCapsulesDistanceJacobian(pinocchio::ModelTpl<Scalar> model, 
+                      pinocchio::DataTpl<Scalar> data, 
+                      Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& config, 
+                      std::pair<int,int> framesPair,
+                      std::pair<Capsule<Scalar>,Capsule<Scalar>> capsulesPair)
+{
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> distJac;
+    // Compute FK
+    pinocchio::SE3Tpl<Scalar> f1Mf2 = getRelativePlacement<Scalar>(data, framesPair);
+    // Compute frames jacobians
+    Eigen::Matrix<ADScalar, 6, 12> Jf1, Jf2;
+    Jf1 = Eigen::Matrix<ADScalar, 6, 12>::Zero(6,12);
+    Jf2 = Eigen::Matrix<ADScalar, 6, 12>::Zero(6,12);
+    pinocchio::computeFrameJacobian(model, data, config, framesPair.first, WORLD, Jf1);
+    pinocchio::computeFrameJacobian(model, data, config, framesPair.second, WORLD, Jf2);
+    // Extract translation
+    
+
+    return distJac;
+}
+
 // Generates the model for the function f(q, pair) = dist. between frames of given pair
 ADFun tapeADCapsulesDistanceCheck(pinocchio::Model model, 
                        std::pair<int,int>* framesPairs, 

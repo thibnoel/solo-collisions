@@ -1,7 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 from solo12_shoulder_collision_utils import followBoundary, colMapToDistField
-from sklearn.neural_network import MLPRegressor
+#from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler  
 
 # Load the collision map from file
@@ -52,7 +52,9 @@ def computePredictionError(pred_dist, dist_field, offset, optim=False, optimRate
 
     return wrong_pred, lost_space, pred_error
 
-
+plt.imshow(dist_field, cmap=plt.cm.RdYlGn)
+plt.show()
+"""
 X,Y = buildData(dist_field)
 reg = MLPRegressor(hidden_layer_sizes=(12,8,6,4),verbose=True, max_iter=400)
 
@@ -73,4 +75,4 @@ plt.figure()
 plt.imshow(dist_field, cmap=plt.cm.RdYlGn)
 plt.figure()
 plt.imshow(pred_error)
-plt.show()
+plt.show()"""

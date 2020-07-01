@@ -219,7 +219,8 @@ int main(int argc, char *argv[])
     // Print output
     std::cout << "---- CODE EVALUATION ----" << std::endl;
     std::cout << "X = \n" << X_test << std::endl;
-    std::cout << "\tDist. result (codegen): \n" << reshapeCodegenResult(Y_test) << std::endl;
+    //std::cout << "\tDist. result (codegen): \n" << reshapeCodegenResult(Y_test) << std::endl;
+    std::cout << "\tDist. result (codegen): \n" << Y_test<< std::endl;
     std::cout << "\nTime taken by function: " << ((int)duration_cg.count())*0.001 << " microseconds" << std::endl; 
     std::cout << "\n\tDist. result (FCL): \n" << fcl_result << std::endl;
     std::cout << "\n" << std::endl;    

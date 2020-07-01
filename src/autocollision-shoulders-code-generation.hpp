@@ -5,8 +5,9 @@
 #include <fstream>
 #include <istream> 
 #include <vector>
-#include <Eigen/Core>
-#include <Eigen/Dense>
+//#include <Eigen/Core>
+//#include <Eigen/Dense>
+#include "pinocchio/algorithm/geometry.hpp"
 #include <complex>
 
 #include "codegen_helper.hpp"
@@ -104,27 +105,44 @@ std::complex<Scalar> evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::D
 template <typename Scalar> 
 Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, 1> evaluateJacobianFromFFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs, Scalar x, Scalar y)
 {
-    std::complex<Scalar> const_i;
-    const_i = std::complex<double>{0,1};
+    Scalar zero;
+    zero = 0;
 
     int m = (int)FTcoeffs.rows();
     int n = (int)FTcoeffs.cols();
 
+    std::complex<Scalar> const_i;
+    const_i = std::complex<double>{0,1};
     std::complex<Scalar> Jx;
     std::complex<Scalar> Jy;
-    std::complex<Scalar> f0;
 
-    f0 = evaluateFromFT(FTcoeffs, x, y);
-    Jx = 2*PI*(x/m)*const_i*f0; 
-    Jy = 2*PI*(y/n)*const_i*f0;
+    Scalar coeffThreshold;
+    coeffThreshold = 1e-6;
+
+    for(int i=0; i<n; i++)
+    {
+        for(int j=0; j<m; j++)
+        {   
+            Scalar coeffReal;
+            Scalar coeffImag;
+
+            coeffReal = CppAD::CondExpLt(std::abs(FTcoeffs(i,j)), coeffThreshold, zero, FTcoeffs(i,j).real());
+            coeffImag = CppAD::CondExpLt(std::abs(FTcoeffs(i,j)), coeffThreshold, zero, FTcoeffs(i,j).imag());
+            std::complex<Scalar> coeff(coeffReal, coeffImag);
+
+            Jx += 2*PI*(x*j/m)*const_i*coeff*(cos(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)) + const_i*sin(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)));
+            Jy += 2*PI*(y*i/n)*const_i*coeff*(cos(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)) + const_i*sin(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)));
+        }
+    }
+    std::complex<Scalar> scale;
+    scale = std::complex<double>{(double)n*m,0};
 
     Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, 1> J;
     J.resize(2);
-    J << Jx, Jy;
+    J << Jx/scale, Jy/scale;
     return J;  
 }
 
-// Generates the model for the function f(q, pair) = dist. between frames of given pair
 // Generates the model for the function f(q, pair) = dist. between frames of given pair (defined by the FT coeffs!)
 ADFun tapeADShoulderDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs)
 {   
@@ -138,8 +156,30 @@ ADFun tapeADShoulderDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen::D
     ADFun ad_fun;
 
     // Tape the function
-    ADScalar d = evaluateFromFT<ADScalar>(FTcoeffs, ad_X[0], ad_X[1]);
+    std::complex<ADScalar> d = evaluateFromFT<ADScalar>(FTcoeffs, ad_X[0], ad_X[1]);
     ad_Y[0] = CppAD::sqrt(d.real()*d.real() - d.imag()*d.imag());
+    ad_fun.Dependent(ad_X, ad_Y);
+
+    return ad_fun;
+}
+
+// TO CHECK : return the magnitudes of d∕dx, d∕dy : is it correct ?
+ADFun tapeADShoulderJacobian(Eigen::Matrix<std::complex<ADScalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs)
+{
+    // Initnialize AD input and output
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
+    ad_X.resize(2);
+    ad_Y.resize(2);
+    CppAD::Independent(ad_X);
+    // Initialize AD function
+    ADFun ad_fun;
+
+    // Tape the function
+    Eigen::Matrix<std::complex<ADScalar>, 2, 1> jac;
+    jac = evaluateJacobianFromFFT<ADScalar>(FTcoeffs, ad_X[0], ad_X[1]);
+    ad_Y[0] = CppAD::sqrt(jac[0].real()*jac[0].real() - jac[0].imag()*jac[0].imag());
+    ad_Y[1] = CppAD::sqrt(jac[1].real()*jac[1].real() - jac[1].imag()*jac[1].imag());
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
@@ -158,15 +198,16 @@ ADFun tapeAD4ShouldersDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen:
     // Initialize AD function
     ADFun ad_fun;
 
+    std::complex<ADScalar> dFL, dFR, dHL, dHR;
     // Tape the function
-    ADScalar dFL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[0], ad_X[1]);
-    ADScalar dFR = evaluateFromFT<ADScalar>(FL_FTcoeffs, -ad_X[2], ad_X[3]); // coeff : opposite on x dir
-    ADScalar dHL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[4], -ad_X[5]); // coeff : opposite on y dir
-    ADScalar dHR = evaluateFromFT<ADScalar>(FL_FTcoeffs, -ad_X[6], -ad_X[7]); // coeff : opposite on both dirs
-    ad_Y[0] = dFL;
-    ad_Y[1] = dFR;
-    ad_Y[2] = dHL;
-    ad_Y[3] = dHR;
+    dFL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[0], ad_X[1]);
+    dFR = evaluateFromFT<ADScalar>(FL_FTcoeffs, -ad_X[2], ad_X[3]); // coeff : opposite on x dir
+    dHL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[4], -ad_X[5]); // coeff : opposite on y dir
+    dHR = evaluateFromFT<ADScalar>(FL_FTcoeffs, -ad_X[6], -ad_X[7]); // coeff : opposite on both dirs
+    ad_Y[0] = CppAD::sqrt(dFL.real()*dFL.real() - dFL.imag()*dFL.imag());
+    ad_Y[1] = CppAD::sqrt(dFR.real()*dFR.real() - dFR.imag()*dFR.imag());
+    ad_Y[2] = CppAD::sqrt(dHL.real()*dHL.real() - dHL.imag()*dHL.imag());
+    ad_Y[3] = CppAD::sqrt(dHR.real()*dHR.real() - dHR.imag()*dHR.imag());
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
