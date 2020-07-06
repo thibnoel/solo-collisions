@@ -18,6 +18,10 @@ def loadDistField(res):
 
 dist_field = loadDistField(res)
 dist_field /= res
+
+tanh_coeff = 1
+#dist_field = np.tanh(tanh_coeff*dist_field)
+
 dist_field *= 2*np.pi
 #dist_field = colMapToDistField(col_map)
 #np.save(dist_field,'./npy_data/updated_collision_map_distance_res{}.npy'.format(res))
@@ -245,6 +249,27 @@ def evalApproxDistFFT(theta_x, theta_y, fft_estim):
             dist += fft_estim[i,j]*(np.cos(2*np.pi*(theta_y*(i-n/2)/n + theta_x*(j-m/2)/m)) + 1j*np.sin(2*np.pi*(theta_y*(i-n/2)/n + theta_x*(j-m/2)/m)))
     return dist/(n*m)
 
+# Evaluate the distance from the FT coeffs
+def evalApproxGradFFT(fft_estim):
+    n,m = fft_estim.shape
+    estim_x = fft_estim.copy()
+    estim_y = fft_estim.copy()
+    for i in range(n):
+        y_grad = 2*np.pi*1j*i/n
+        if(i>n/2):
+            y_grad = 2*np.pi*1j*(i-n)/n
+        for j in range(m):
+            x_grad = 2*np.pi*1j*j/m
+            if(j>m/2):
+                x_grad = 2*np.pi*1j*(j-m)/m
+            estim_x[i,j] = x_grad*fft_estim[i,j] #*(np.cos(2*np.pi*(theta_y*(i-n/2)/n + theta_x*(j-m/2)/m)) + 1j*np.sin(2*np.pi*(theta_y*(i-n/2)/n + theta_x*(j-m/2)/m)))
+            estim_y[i,j] = y_grad*fft_estim[i,j] #*(np.cos(2*np.pi*(theta_y*(i-n/2)/n + theta_x*(j-m/2)/m)) + 1j*np.sin(2*np.pi*(theta_y*(i-n/2)/n + theta_x*(j-m/2)/m)))
+            if(i == n/2):
+                estim_y[i,j] = 0
+            if(j == m/2):
+                estim_x[i,j] = 0
+    return estim_x, estim_y
+"""
 def evalApproxDistFFTOptim(theta_x, theta_y, fft_estim):
     dist = 0
     n,m = fft_estim.shape
@@ -274,7 +299,7 @@ def evalApproxDistFFTOptim(theta_x, theta_y, fft_estim):
         cosy = new_cosy
 
     return dist/(n*m)
-
+"""
 
 def evalApproxDistDCT(theta_x, theta_y, dct_estim):
     dist = dct_estim[0,0]
@@ -286,12 +311,25 @@ def evalApproxDistDCT(theta_x, theta_y, dct_estim):
     return dist/(4*n*m)
 
 
-threshold = 8.3
+threshold = 7
+threshold = 0
+
+Jthreshold = 4.8
+Jthreshold = 0
 
 fft_estim = getThreshTransform(dist_field, threshold, dct=False)
 dct_estim = getThreshTransform(dist_field, threshold, dct=True)
 plotEstimData(dist_field, threshold, dct=False)
 
+Jx, Jy = evalApproxGradFFT(fft_estim)
+
+Jx = thresholdFilter(Jthreshold, Jx)
+Jy = thresholdFilter(Jthreshold, Jy)
+
+print(np.max(abs(np.fft.ifft2(fft_estim).imag)))
+print(np.max(abs(np.fft.ifft2(Jx).imag)), np.max(abs(np.fft.ifft2(Jy).imag)))
+
+# Save filtered FFT coeffs to file for code generation
 #np.savetxt("fft_estim_real.csv", fft_estim.real, delimiter=',')
 #np.savetxt("fft_estim_imag.csv", fft_estim.imag, delimiter=',')
 
@@ -307,6 +345,27 @@ arg_y = theta_y*res/(2*np.pi)
 #theta_y = 250
 print("Eval FFT: approx({:.2f},{:.2f}) = {}".format(arg_x, arg_y, evalApproxDistFFT(arg_x, arg_y, np.fft.fftshift(fft_estim))))
 print("Closest true value : {}".format(np.fft.ifft2(fft_estim)[int(arg_y), int(arg_x)]))
+print("Jac x FFT: approx({:.2f},{:.2f}) = {}".format(arg_x, arg_y, evalApproxDistFFT(arg_x, arg_y, np.fft.fftshift(Jx))))
+#print("Jx : {}".format(np.abs(evalApproxDistFFT(arg_x, arg_y, np.fft.fftshift(2*np.pi*arg_x*1j*fft_estim)))))
+#print("Jy : {}".format(np.abs(evalApproxDistFFT(arg_x, arg_y, np.fft.fftshift(2*np.pi*arg_y*1j*fft_estim)))))
+
+
+
+plt.figure()
+plt.imshow(np.fft.ifft2(fft_estim).real, cmap=plt.cm.RdYlGn)
+plt.figure()
+plt.subplot(2,2,1)
+plt.imshow(np.fft.ifft2(Jx).real, cmap=plt.cm.PiYG, vmin = -0.02, vmax = 0.02)
+plt.title("Jx")
+plt.subplot(2,2,2)
+plt.imshow(np.fft.fftshift(np.log(1 + abs(Jx))))
+plt.title("Jx fft ({} >0)".format(np.count_nonzero(abs(Jx))))
+plt.subplot(2,2,3)
+plt.imshow(np.fft.ifft2(Jy).real, cmap=plt.cm.PiYG, vmin = -0.02, vmax = 0.02)
+plt.title("Jy")
+plt.subplot(2,2,4)
+plt.imshow(np.fft.fftshift(np.log(1 + abs(Jy))))
+plt.title("Jy fft ({} >0)".format(np.count_nonzero(abs(Jy))))
 
 #print("\nEval DCT: approx({:.2f},{:.2f}) = {:.2f}".format(theta_x, theta_y, evalApproxDistDCT(theta_x, theta_y, dct_estim)))
 #print("Closest true value : {}".format(idctn(dct_estim)[floor(theta_y), floor(theta_x)]))
@@ -332,7 +391,7 @@ plt.imshow(diff_map)
 #plotLostSpaceVsNbCoeff(dist_field, [0,5,10,15], dct=True)
 #plotLostSpaceVsNbCoeff(dist_field, [0,5,10,15], dct=False)
 #plt.imshow(dist_field, cmap=plt.cm.RdYlGn)   
-plt.legend()
+#plt.legend()
 plt.show()
 
 

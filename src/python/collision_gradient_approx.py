@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from solo12_shoulder_collision_utils import followBoundary, colMapToDistField
 
 # Load the collision map from file
-res = 1000
+res = 500
 col_map_file = './npy_data/collision_map_centered_res{}.npy'.format(res)
 col_map = np.load(col_map_file, allow_pickle=True)
 col_map = col_map.T
@@ -22,10 +22,8 @@ sobel=np.hypot(sx,sy)
 
 plt.imshow(dist_field, cmap=plt.cm.RdYlGn)
 plt.figure()
-plt.imshow(sx)
+plt.imshow(sx, cmap=plt.cm.RdYlGn)
 plt.figure()
-plt.imshow(sy)
-plt.figure()
-plt.contour(dist_field, levels=50, cmap=plt.cm.RdYlGn)
+plt.imshow(sy, cmap=plt.cm.RdYlGn)
 
 plt.show()
