@@ -3,82 +3,13 @@
 //#include <hpp/fcl/shape/geometric_shapes.h>
 
 #include "relative-placement-codegen.hpp"
-#include "segment-segment-distance-codegen.hpp"
-
+#include "geometric_distances.hpp"
+#include "simple-coll-geometries.hpp" // Capsule, sphere and RSS geometries
 #include "pinocchio/algorithm/joint-configuration.hpp"
 #include "pinocchio/algorithm/geometry.hpp"
 //#include "pinocchio/fcl.hpp"
 
 using namespace pinocchio;
-
-// Capsule struct used to simplify arguments 
-template<typename Scalar>
-struct Capsule 
-{
-    // Ends coord. in reference frame
-    Eigen::Matrix<Scalar, 3, 1> a;
-    Eigen::Matrix<Scalar, 3, 1> b;
-    // Radius
-    Scalar radius;
-    
-    // Length
-    Scalar getLength()
-    {
-        return (b-a).norm();
-    }
-    // Transform from parent to ref. frame
-    pinocchio::SE3Tpl<Scalar> get_fMc()
-    {   
-        Scalar zero;
-        zero = 0;
-        Eigen::Matrix<Scalar, 3, 1> translation = 0.5*(a + b);
-        Eigen::Matrix<Scalar, 3, 3> rotation;
-        Eigen::Matrix<Scalar, 3, 1> capsDir = (b-a)/((b-a).norm());
-        Eigen::Matrix<Scalar, 3, 1> upDir;
-        upDir[0] = 0;
-        upDir[1] = 0;
-        upDir[2] = 1;
-        Eigen::Matrix<Scalar, 3, 1> v;
-        v = upDir.cross(capsDir);
-        Scalar c = upDir.transpose()*capsDir;
-        Scalar s = v.norm();
-
-        // Check parallel case
-        if(s > 1e-5)
-        {
-            Eigen::Matrix<Scalar, 3, 3> kmat;
-            kmat << zero, -v[2], v[1],
-                    v[2], zero, -v[0],
-                    -v[1], v[0], zero;
-            rotation = Eigen::Matrix<Scalar, 3, 3>::Identity(3,3) + kmat + ((1-c)/(s*s))*(kmat*kmat);            
-        } else {
-            rotation = Eigen::Matrix<Scalar, 3, 3>::Identity(3,3);
-        }
-
-        const pinocchio::SE3Tpl<Scalar> fMc(rotation, translation);
-
-        return fMc;
-    }
-
-    template<typename AltScalar>
-    Capsule<AltScalar> cast()
-    {
-        Eigen::Matrix<AltScalar, 3, 1> a_cast;
-        a_cast[0] = a[0];
-        a_cast[1] = a[1];
-        a_cast[2] = a[2];
-        Eigen::Matrix<AltScalar, 3, 1> b_cast;
-        b_cast[0] = b[0];
-        b_cast[1] = b[1];
-        b_cast[2] = b[2];
-        AltScalar radius_cast;
-        radius_cast = radius;
-        //pinocchio::SE3Tpl<AltScalar> fMc_cast(fMc.rotation(), fMc.translation());
-        const struct Capsule<AltScalar> caps_cast = {a_cast, b_cast, radius_cast};
-
-        return caps_cast;
-    }
-};
 
 // Returns a pair of int representing two frames, from their names and the robot model
 std::pair<int,int> getFramesPair(std::string frameName1, std::string frameName2, pinocchio::Model model)
@@ -117,26 +48,128 @@ Scalar runCapsulesDistanceCheck(pinocchio::DataTpl<Scalar> data,
 }
 
 // Get the jacobian of the distance
+// NOT TESTED
 template<typename Scalar>
-Eigen::Matrix<Scalar, Eigen::Dynamic, 1> getCapsulesDistanceJacobian(pinocchio::ModelTpl<Scalar> model, 
+Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> getFramesDistanceJacobian(pinocchio::ModelTpl<Scalar> model, 
                       pinocchio::DataTpl<Scalar> data, 
                       Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& config, 
                       std::pair<int,int> framesPair,
-                      std::pair<Capsule<Scalar>,Capsule<Scalar>> capsulesPair)
+                      std::pair<Eigen::Matrix<Scalar, 3, 1>,Eigen::Matrix<Scalar, 3, 1>> witnessPoints)
 {
-    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> distJac;
-    // Compute FK
-    pinocchio::SE3Tpl<Scalar> f1Mf2 = getRelativePlacement<Scalar>(data, framesPair);
-    // Compute frames jacobians
+    // Declare intermediary variables
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, Eigen::Dynamic> distJac;
     Eigen::Matrix<ADScalar, 6, 12> Jf1, Jf2;
+    Eigen::Matrix<ADScalar, 3, 12> f1Jp1, f2Jp2;
+    Eigen::Matrix<ADScalar, 3, 12> oJp1, oJp2;
+
+    int base_frame_id = (int)model.getFrameId("base_link"); 
+    // Compute FK
+    pinocchio::SE3Tpl<Scalar> oMf1 = getRelativePlacement<Scalar>(data, std::make_pair(base_frame_id, framesPair.first));
+    pinocchio::SE3Tpl<Scalar> oMf2 = getRelativePlacement<Scalar>(data, std::make_pair(base_frame_id, framesPair.second));
+    // Compute frames jacobians
     Jf1 = Eigen::Matrix<ADScalar, 6, 12>::Zero(6,12);
     Jf2 = Eigen::Matrix<ADScalar, 6, 12>::Zero(6,12);
-    pinocchio::computeFrameJacobian(model, data, config, framesPair.first, WORLD, Jf1);
-    pinocchio::computeFrameJacobian(model, data, config, framesPair.second, WORLD, Jf2);
-    // Extract translation
-    
+    pinocchio::computeFrameJacobian(model, data, config, framesPair.first, LOCAL, Jf1);
+    pinocchio::computeFrameJacobian(model, data, config, framesPair.second, LOCAL, Jf2);
+    // Compute local velocities
+    f1Jp1 = Jf1.block(0,0,3,Jf1.cols()) + pinocchio::skew(witnessPoints.first)*Jf1.block(3,0,3,Jf1.cols()); 
+    f2Jp2 = Jf2.block(0,0,3,Jf2.cols()) + pinocchio::skew(witnessPoints.second)*Jf2.block(3,0,3,Jf2.cols()); 
+    // Compute world velocities
+    oJp1 = oMf1.rotation()*f1Jp1;
+    oJp2 = oMf2.rotation()*f2Jp2;
 
+    distJac.resize(3,12);
+    distJac = oJp2 - oJp1;
     return distJac;
+}
+
+// Function to generate
+// Wrapper for forward kinematics + pointRectDistance
+template<typename Scalar> 
+Scalar getSphereRSSDistanceCheck(pinocchio::DataTpl<Scalar> data,
+                      std::pair<int,int> framesPair, // first of the pair must be the base link
+                      RectSweptSph<Scalar> rss,
+                      Sphere<Scalar> sph)
+{
+    // Get relative placement between f1, f2 (f1 being the base here)
+    // Assumes forwardKinematics and updateFramesPlacements have been called on the model
+    pinocchio::SE3Tpl<Scalar> bMf2 = getRelativePlacement<Scalar>(data, framesPair);
+
+    pinocchio::SE3Tpl<Scalar> bMr = rss.get_fMc();
+
+    // Declare sphere position in rect. frame
+    Eigen::Matrix<Scalar, 3, 1> spherePosR;
+
+    // Initialize sphere position
+    spherePosR << bMr.actInv(bMf2.act(sph.c));
+
+    // Compute min. distance between capsules segments minus capsules radii 
+    return CppAD::sqrt(pointRectSqrDistance_scalar<Scalar>(spherePosR[0], spherePosR[1], spherePosR[2], rss.width, rss.length)) - (sph.radius + rss.radius);   
+}
+
+// Tape 1 pair lower leg - body
+ADFun tapeADPointRSSDistanceCheck(pinocchio::ModelTpl<Scalar> model,
+                      std::pair<int,int> framesPair, // first of the pair must be the base link
+                      RectSweptSph<ADScalar> rss,
+                      Sphere<ADScalar> sph)
+{
+    // Cast the model to ADScalar type and regenerate the model data
+    ModelTpl<ADScalar> cast_rmodel = model.cast<ADScalar>(); 
+    DataTpl<ADScalar> cast_rdata(cast_rmodel);  
+
+    // Initnialize AD input and output
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
+    ad_X.resize(cast_rmodel.nq);
+    ad_Y.resize(1);
+    CppAD::Independent(ad_X);
+    // Initialize AD function
+    ADFun ad_fun;
+
+    // Compute forward kinematics 
+    pinocchio::forwardKinematics(cast_rmodel, cast_rdata, ad_X);
+    pinocchio::updateFramePlacements(cast_rmodel, cast_rdata);
+
+    ADScalar d = getSphereRSSDistanceCheck<ADScalar>(cast_rdata, framesPair, rss, sph);
+    ad_Y[0] = d;
+
+    ad_fun.Dependent(ad_X, ad_Y);
+
+    return ad_fun;
+}
+
+// Tape multiple pairs lower-leg - body but with the same parameters for the RSS and spherre geometries
+ADFun tapeADPointRSSMultDistanceCheck(pinocchio::ModelTpl<Scalar> model,
+                      std::pair<int,int>* framesPair, // first of the pair must be the base link
+                      RectSweptSph<ADScalar> rss,
+                      Sphere<ADScalar> sph,
+                      int nb_pairs)
+{
+    // Cast the model to ADScalar type and regenerate the model data
+    ModelTpl<ADScalar> cast_rmodel = model.cast<ADScalar>(); 
+    DataTpl<ADScalar> cast_rdata(cast_rmodel);  
+
+    // Initnialize AD input and output
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
+    ad_X.resize(cast_rmodel.nq);
+    ad_Y.resize(nb_pairs);
+    CppAD::Independent(ad_X);
+    // Initialize AD function
+    ADFun ad_fun;
+
+    // Compute forward kinematics 
+    pinocchio::forwardKinematics(cast_rmodel, cast_rdata, ad_X);
+    pinocchio::updateFramePlacements(cast_rmodel, cast_rdata);
+
+    for(int k=0; k<nb_pairs; k++)
+    {
+        ADScalar d = getSphereRSSDistanceCheck<ADScalar>(cast_rdata, framesPair[k], rss, sph);
+        ad_Y[k] = d;
+    }
+    ad_fun.Dependent(ad_X, ad_Y);
+
+    return ad_fun;
 }
 
 // Generates the model for the function f(q, pair) = dist. between frames of given pair
@@ -173,4 +206,35 @@ ADFun tapeADCapsulesDistanceCheck(pinocchio::Model model,
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
+}
+
+ADFun tapeADJacobianDistanceCheck(pinocchio::ModelTpl<Scalar> model,
+                      std::pair<int,int> framesPair,
+                      std::pair<Eigen::Matrix<Scalar, 3, 1>,Eigen::Matrix<Scalar, 3, 1>> witnessPoints)
+{
+    // Cast the model to ADScalar type and regenerate the model data
+    ModelTpl<ADScalar> cast_rmodel = model.cast<ADScalar>(); 
+    DataTpl<ADScalar> cast_rdata(cast_rmodel);  
+
+    // Initnialize AD input and output
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
+    ad_X.resize(cast_rmodel.nq);
+    ad_Y.resize(3*cast_rmodel.nq);
+    CppAD::Independent(ad_X);
+    // Initialize AD function
+    ADFun ad_fun;
+
+    // Compute forward kinematics 
+    pinocchio::forwardKinematics(cast_rmodel, cast_rdata, ad_X);
+    pinocchio::updateFramePlacements(cast_rmodel, cast_rdata);
+
+    Eigen::Matrix<ADScalar, Eigen::Dynamic, Eigen::Dynamic> res;
+    res = getFramesDistanceJacobian<ADScalar>(cast_rmodel, cast_rdata, ad_X, framesPair, witnessPoints);
+    res.resize(3*cast_rmodel.nq,1);
+    ad_Y = res;
+
+    ad_fun.Dependent(ad_X, ad_Y);
+    return ad_fun;
+
 }
