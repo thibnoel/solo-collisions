@@ -40,11 +40,11 @@ Scalar runCapsulesDistanceCheck(pinocchio::DataTpl<Scalar> data,
     caps2P0 << f1Mf2.act(capsulesPair.second.a);
     caps2P1 << f1Mf2.act(capsulesPair.second.b);
 
-    // Compute min. distance between capsules segments minus capsules radii 
-    return CppAD::sqrt(segmentSegmentSqrDistance_scalar<Scalar>(caps1P0[0], caps1P0[1], caps1P0[2],
-                                         caps1P1[0], caps1P1[1], caps1P1[2],
-                                         caps2P0[0], caps2P0[1], caps2P0[2],
-                                         caps2P1[0], caps2P1[1], caps2P1[2])) - (capsulesPair.first.radius + capsulesPair.second.radius);
+    DistanceResult<Scalar> distResult;
+    distResult = segmentSegmentSqrDistance_vector<Scalar>(caps1P0, caps1P1, caps2P0, caps2P1);
+    // witness points accessible as wPoint1, wPoint2
+
+    return CppAD::sqrt(distResult.distance) - (capsulesPair.first.radius + capsulesPair.second.radius);
 }
 
 // Get the jacobian of the distance

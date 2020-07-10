@@ -11,6 +11,7 @@ using namespace pinocchio;
 **********************************************************************************************************/               
 // Function to generate
 // Wrapper for pinocchio::forwardKinematics for frames f1, f2
+/*
 template<typename Scalar>
 pinocchio::SE3Tpl<Scalar> relativePlacement(pinocchio::ModelTpl<Scalar> model, pinocchio::DataTpl<Scalar> data, Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& config, int frameInd1, int frameInd2)
 {
@@ -19,7 +20,7 @@ pinocchio::SE3Tpl<Scalar> relativePlacement(pinocchio::ModelTpl<Scalar> model, p
     SE3Tpl<Scalar> oMf1 = data.oMf[frameInd1];
     SE3Tpl<Scalar> oMf2 = data.oMf[frameInd2];
     return oMf1.inverse() * oMf2;
-}
+}*/
 /**********************************************************************************************************
 **********************************************************************************************************/   
 
@@ -40,6 +41,8 @@ pinocchio::SE3Tpl<Scalar> getRelativePlacement(pinocchio::DataTpl<Scalar> update
     return oMf1.inverse() * oMf2;
 }
 
+// DEPRECATED
+/*
 // Generates the model for the function f12(q) = f1Mf2 
 ADFun tapeADFunRelativePlacement(pinocchio::Model model, int frameInd1, int frameInd2)
 {
@@ -63,4 +66,4 @@ ADFun tapeADFunRelativePlacement(pinocchio::Model model, int frameInd1, int fram
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
-}
+}*/

@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
     struct Capsule<ADScalar> ADCapsulesApprox[4] = {ADLeftUpperCaps, ADLeftLowerCaps, ADRightUpperCaps, ADRightLowerCaps};
        
         // AD Capsules pairs (code gen. arg.)
-    //std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* ADCapsPairs = getSoloLegsADCapsPairs(ADCapsulesApprox);       
+    std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* ADCapsPairs = getSoloLegsADCapsPairs(ADCapsulesApprox);       
 
 
     /*------- TEST : sphere-RSS lower legs collision -----*/      
@@ -210,34 +210,34 @@ int main(int argc, char *argv[])
     struct Sphere<ADScalar> AD_fl_lower_sph = fl_lower_sph.cast<ADScalar>();                                               
 
     // Generate the code for the specified frames and capsule parameters, and compile it as library
-    //ADFun genFun = tapeADCapsulesDistanceCheck(rmodel, framesPairs, ADCapsPairs, nb_pairs);
-    //generateCompileCLib("solo_autocollision", genFun);
+    ADFun genFun = tapeADCapsulesDistanceCheck(rmodel, framesPairs, ADCapsPairs, nb_pairs);
+    generateCompileCLib("solo_autocollision", genFun);
 
     //ADFun genFun = tapeADPointRSSMultDistanceCheck(rmodel, framesBaseLL, AD_base_rss, AD_fl_lower_sph, 4);
     //generateCompileCLib("solo_autocollision_LL_BASE", genFun);
 
     // Test Jacobian
     // TODO
-    ADFun genFun = tapeADJacobianDistanceCheck(rmodel, framesPairs[0], std::make_pair(LEFT_UPPER_CAPSULE_A, RIGHT_UPPER_CAPSULE_A));
-    generateCompileCLib("solo_autocollision_Jacobian", genFun);
+    //ADFun genFun = tapeADJacobianDistanceCheck(rmodel, framesPairs[0], std::make_pair(LEFT_UPPER_CAPSULE_A, RIGHT_UPPER_CAPSULE_A));
+    //generateCompileCLib("solo_autocollision_Jacobian", genFun);
 
     /***************************************************************************
     *                      Generated code evaluation
     ***************************************************************************/
-    /*const std::string LIBRARY_NAME = "./libCGsolo_autocollision";
+    const std::string LIBRARY_NAME = "./libCGsolo_autocollision";
     const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
-    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision");*/
+    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision");
 
     /*const std::string LIBRARY_NAME = "./libCGsolo_autocollision_LL_BASE";
     const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
     std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision_LL_BASE");*/
 
-    const std::string LIBRARY_NAME = "./libCGsolo_autocollision_Jacobian";
+    /*const std::string LIBRARY_NAME = "./libCGsolo_autocollision_Jacobian";
     const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
-    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision_Jacobian");
+    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision_Jacobian");*/
 
     // Generated code evaluation
         // Input : Get a random config.
@@ -247,8 +247,8 @@ int main(int argc, char *argv[])
     //X_test = Eigen::Matrix<double,12,1>::Zero(12,1);
         // Output : distance
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;
-    Y_test.resize(24);
-    Y_test.resize(36);
+    Y_test.resize(20);
+    //Y_test.resize(36);
 
     // Function evaluation with start and stop timestamps
     auto start_cg = high_resolution_clock::now();

@@ -16,13 +16,15 @@ def loadDistField(res):
     dist_field_file = './npy_data/updated_collision_map_distance_res{}.npy'.format(res)
     return np.load(dist_field_file, allow_pickle=True)
 
+carac_length = 0.2
+
 dist_field = loadDistField(res)
 dist_field /= res
 
 tanh_coeff = 1
 #dist_field = np.tanh(tanh_coeff*dist_field)
 
-dist_field *= 2*np.pi
+dist_field *= 2*np.pi*carac_length
 #dist_field = colMapToDistField(col_map)
 #np.save(dist_field,'./npy_data/updated_collision_map_distance_res{}.npy'.format(res))
 
@@ -355,13 +357,13 @@ plt.figure()
 plt.imshow(np.fft.ifft2(fft_estim).real, cmap=plt.cm.RdYlGn)
 plt.figure()
 plt.subplot(2,2,1)
-plt.imshow(np.fft.ifft2(Jx).real, cmap=plt.cm.PiYG, vmin = -0.02, vmax = 0.02)
+plt.imshow(np.fft.ifft2(Jx).real, cmap=plt.cm.PiYG, vmin = -0.01, vmax = 0.01)
 plt.title("Jx")
 plt.subplot(2,2,2)
 plt.imshow(np.fft.fftshift(np.log(1 + abs(Jx))))
 plt.title("Jx fft ({} >0)".format(np.count_nonzero(abs(Jx))))
 plt.subplot(2,2,3)
-plt.imshow(np.fft.ifft2(Jy).real, cmap=plt.cm.PiYG, vmin = -0.02, vmax = 0.02)
+plt.imshow(np.fft.ifft2(Jy).real, cmap=plt.cm.PiYG, vmin = -0.01, vmax = 0.01)
 plt.title("Jy")
 plt.subplot(2,2,4)
 plt.imshow(np.fft.fftshift(np.log(1 + abs(Jy))))
