@@ -1,5 +1,16 @@
 #include <iosfwd>
 #include "codegen_helper.hpp"
+#include <pinocchio/algorithm/kinematics.hpp>
+#include <pinocchio/algorithm/frames.hpp>
+
+// Struct for distance result : stores a distance and 2 witness points (IN WHICH FRAME?)
+template<typename Scalar>
+struct DistanceResult
+{
+    Scalar distance;
+    Eigen::Matrix<Scalar, 3, 1> wPoint1;
+    Eigen::Matrix<Scalar, 3, 1> wPoint2;
+};
 
 // Returns the shortest distance between 2 segments
 template<typename Scalar>
@@ -126,30 +137,160 @@ Scalar segmentSegmentSqrDistance_scalar(Scalar x10,
     return squaredDistanceResult;
 }
 
+// Returns the shortest distance between 2 segments
+template<typename Scalar>
+DistanceResult<Scalar> segmentSegmentSqrDistance_vector(Eigen::Matrix<Scalar, 3, 1> p10,
+                               Eigen::Matrix<Scalar, 3, 1> p11,
+                               Eigen::Matrix<Scalar, 3, 1> p20,
+                               Eigen::Matrix<Scalar, 3, 1> p21)
+{
+    
+    // u : direction vector of 1st segment
+    Eigen::Matrix<Scalar, 3, 1> u;
+    u << p11 - p10; 
+    // v : direction vector of 2nd segment
+    Eigen::Matrix<Scalar, 3, 1> v;
+    v << p21 - p20;
+    // w : direction between first endpoints of both segments
+    Eigen::Matrix<Scalar, 3, 1> w;
+    w << p10 - p20;
+
+    // Scalar products
+    Scalar uTu = u.transpose()*u; 
+    Scalar uTv = u.transpose()*v;
+    Scalar vTv = v.transpose()*v;
+    Scalar uTw = u.transpose()*w;
+    Scalar vTw = v.transpose()*w;
+
+    // Solving for s (resp. t) on segment 1 (resp. 2)
+    // Initializing denominators (den) and numerators (num)
+    Scalar den = uTu*vTv - uTv*uTv;
+    Scalar s_den;
+    Scalar t_den;
+    Scalar s_num; // = 0;
+    Scalar t_num; // = 0;
+
+    Scalar s_closest; // = 0;
+    Scalar t_closest; // = 0;
+    
+    // Setting threshold on denominator for parallel case
+    Scalar DEN_THRESHOLD;
+    DEN_THRESHOLD = 1e-9;
+
+    // For condExp tests
+    Scalar scalarZero;
+    Scalar scalarOne;
+    scalarZero = 0.;
+    scalarOne = 1;
+
+    /*------------- Computing the closest points and shortest distance -------------*/
+    // Parallel case
+        // Conditional value of s_num
+    s_num = CondExpLt(den, DEN_THRESHOLD, scalarZero, uTv*vTw - vTv*uTw);
+        // Conditional value of s_den
+    s_den = CondExpLt(den, DEN_THRESHOLD, scalarOne, den);
+        // Conditional value of t_num
+    t_num = CondExpLt(den, DEN_THRESHOLD, vTw, uTu*vTw - uTv*uTw);
+        // Conditional value of t_den
+    t_den = CondExpLt(den, DEN_THRESHOLD, vTv, den);
+
+    // Check the constraint : s in [0,1]
+        // Conditional value of t_num
+    t_num = CondExpLt(s_num, scalarZero, vTw, t_num);
+    t_num = CondExpGt(s_num, s_den, vTw + uTv, t_num);
+        // Conditional value of t_den
+    t_den = CondExpLt(s_num, scalarZero, vTv, t_den);
+    t_den = CondExpGt(s_num, s_den, vTv, t_den);
+        // Conditional value of s_num
+    s_num = CondExpLt(s_num, scalarZero, scalarZero, s_num);
+    s_num = CondExpGt(s_num, s_den, s_den, s_num);
+
+    // Check the constraint : t in [0,1]
+        // Logic tree for s_num
+    Scalar s_num_A;
+    Scalar s_num_B;
+    Scalar s_num_C;
+    Scalar s_num_D;
+    Scalar s_num_E;
+    s_num_A = CondExpGt(-uTw + uTv, uTu, s_den, -uTw + uTv);
+    s_num_B = CondExpLt(-uTw + uTv, scalarZero, scalarZero, s_num_A);
+    s_num_C = CondExpGt(t_num, t_den, s_num_B, s_num);
+    s_num_D = CondExpGt(-uTw, uTu, s_den, -uTw);
+    s_num_E = CondExpLt(-uTw, scalarZero, scalarZero, s_num_D);
+
+    s_num = CondExpLt(t_num, scalarZero, s_num_E, s_num_C);
+
+        // Logic tree for s_den
+    Scalar s_den_A;
+    Scalar s_den_B;
+    Scalar s_den_C;
+    Scalar s_den_D;
+    Scalar s_den_E;
+    s_den_A = CondExpGt(-uTw + uTv, uTu, s_den, uTu);
+    s_den_B = CondExpLt(-uTw + uTv, scalarZero, s_den, s_den_A);
+    s_den_C = CondExpGt(t_num, t_den, s_den_B, s_den);
+    s_den_D = CondExpGt(-uTw, uTu, s_den, uTu);
+    s_den_E = CondExpLt(-uTw, scalarZero, s_den, s_den_D);
+
+    s_den = CondExpLt(t_num, scalarZero, s_den_E, s_den_C);
+
+        // Constrain t between 0 and 1
+    t_num = CondExpLt(t_num, scalarZero, scalarZero, t_num);
+    t_num = CondExpGt(t_num, t_den, t_den, t_num);
+
+    // Final computation of s_closest, t_closest
+    s_closest = CondExpLt(abs(s_num), DEN_THRESHOLD, scalarZero, s_num/s_den);
+    t_closest = CondExpLt(abs(t_num), DEN_THRESHOLD, scalarZero, t_num/t_den);
+
+    Eigen::Matrix<Scalar, 3, 1> diff_closest;
+    diff_closest << w + s_closest*u - t_closest*v;
+    
+    // return the squared norm of the diff. vector
+    //return diff_closest.squaredNorm();
+    DistanceResult<Scalar> result = {diff_closest.squaredNorm(), p10 + s_closest*u, p20 + t_closest*v};
+    return result;
+
+}
+
+template<typename Scalar>
+void clamp(Scalar min, Scalar max, Scalar x)
+{
+    x = CppAD::CondExpLt(x, min, min, x);
+    x = CppAD::CondExpGt(x, max, max, x);
+}
 // Returns the shortest distance between 1 point and 1 rectangle
 // Rectangle defined by bottom left corner, width and height
 // Point is supposed to be in the rectangle ref. frame (i.e. bottom left corner at [0,0,0], z-normal)
 template<typename Scalar>
-Scalar pointRectSqrDistance_scalar(Scalar x, // Point coord.
-                               Scalar y,
-                               Scalar z, 
+Scalar pointRectSqrDistance_scalar(Scalar xP, // Point coord.
+                               Scalar yP,
+                               Scalar zP, 
                                Scalar rectWidth,
                                Scalar rectLength)
 {
-    Scalar distResult;
+    Scalar scalarZero;
+    scalarZero = 0.;
 
-    Scalar clampedX;
-    Scalar clampedY;
+    Scalar sqrDistResult;
 
-    void clamp(Scalar min, Scalar max, Scalar x)
-    {
-        x = CondExpLt(x, min, min, x);
-        x = CondExpGt(x, max, max, x);
-    }
+    Scalar closestX;
+    Scalar closestY;
+    Scalar closestZ;
+    closestX = xP;
+    closestY = yP;
+    closestZ = 0;
 
-    return distResult;
+    clamp(scalarZero, rectLength, closestX);
+    clamp(scalarZero, rectWidth, closestY);
+
+    sqrDistResult = (closestX - xP)*(closestX - xP) + (closestY - yP)*(closestY - yP) + (closestZ - zP)*(closestZ - zP);
+
+    return sqrDistResult;
 }
 
+// DEPRECATED
+
+/*
 // Generates the model for the function f(seg1, seg2) = min_dist(seg1,seg2)
 ADFun tapeADFunSegSegDist()
 {
@@ -166,3 +307,4 @@ ADFun tapeADFunSegSegDist()
 
     return fun;
 } 
+*/
