@@ -2,7 +2,7 @@
 
 typedef boost::shared_ptr< fcl::CollisionGeometry > CollisionGeometryPtr;
 // Helper function : returns the jMf SE3 placement given a frame f, j being its parent joint
-pinocchio::SE3 jointToFrameRelativePlacement(pinocchio::Model model, pinocchio::Data data, int frameInd)
+pinocchio::SE3 parentToFrameRelativePlacement(pinocchio::Model model, pinocchio::Data data, int frameInd)
 {
     //forwardKinematics(model, data, config);
     //updateFramePlacements(model, data);
@@ -20,8 +20,8 @@ double getPairFCLResult(pinocchio::Model& model,
                     std::pair<int,int> framesPair,
                     std::pair<Capsule<double>,Capsule<double>> capsulesPair)
 {
-    pinocchio::SE3 j1Mframe1 = jointToFrameRelativePlacement(model, data, framesPair.first);
-    pinocchio::SE3 j2Mframe2 = jointToFrameRelativePlacement(model, data, framesPair.second);
+    pinocchio::SE3 j1Mframe1 = parentToFrameRelativePlacement(model, data, framesPair.first);
+    pinocchio::SE3 j2Mframe2 = parentToFrameRelativePlacement(model, data, framesPair.second);
 
     pinocchio::SE3 f1Mc1 = capsulesPair.first.get_fMc();
     pinocchio::SE3 f2Mc2 = capsulesPair.second.get_fMc();
@@ -58,6 +58,7 @@ double getPairFCLResult(pinocchio::Model& model,
 
 }
 
+// Add an hpp::fcl::Capsule geometry to a specified frame of the robot geometry model
 pinocchio::GeomIndex addFCLCapsule(pinocchio::Model& model, 
                     pinocchio::GeometryModel& gmodel, 
                     pinocchio::Data& data,
@@ -66,7 +67,7 @@ pinocchio::GeomIndex addFCLCapsule(pinocchio::Model& model,
                     std::string caps_name)
 {
     // Get frames
-    pinocchio::SE3 jMf = jointToFrameRelativePlacement(model, data, frameIndex);
+    pinocchio::SE3 jMf = parentToFrameRelativePlacement(model, data, frameIndex);
     pinocchio::SE3 fMc = caps.get_fMc();
     // Initialize FCL geometry
     const CollisionGeometryPtr caps_geom (new hpp::fcl::Capsule(caps.radius, caps.getLength())); 
@@ -127,6 +128,59 @@ Eigen::Matrix<double, 8, 8> getSoloFCLResult(pinocchio::Model& model,
         {
             result(i,j) = collisions_dist[gmodel.findCollisionPair(pinocchio::CollisionPair(capsulesInd[i],capsulesInd[j]))].min_distance;
             result(j,i) = collisions_dist[gmodel.findCollisionPair(pinocchio::CollisionPair(capsulesInd[i],capsulesInd[j]))].min_distance;
+        }
+    }
+    return result;
+}
+
+// New FCL check, directly from simplified URDF file
+Eigen::Matrix<double, 8, 8> newGetSoloFCLResult(pinocchio::Model& model, 
+                                            pinocchio::GeometryModel& gmodel, 
+                                            pinocchio::Data& data, 
+                                            Eigen::Matrix<double, Eigen::Dynamic, 1>& config)
+{
+    // Initialize legs frames
+    /*int frames[8] = {(int)model.getFrameId("FL_UPPER_LEG"),
+                        (int)model.getFrameId("FL_LOWER_LEG"),
+                        (int)model.getFrameId("FR_UPPER_LEG"),
+                        (int)model.getFrameId("FR_LOWER_LEG"),
+                        (int)model.getFrameId("HL_UPPER_LEG"),
+                        (int)model.getFrameId("HL_LOWER_LEG"),
+                        (int)model.getFrameId("HR_UPPER_LEG"),
+                        (int)model.getFrameId("HR_LOWER_LEG")};*/
+
+    // Initialize legs geometries (capsules in the simplified model)
+    int geoms[8] = {(int)gmodel.getGeometryId("FL_UPPER_LEG_0"),
+                        (int)gmodel.getGeometryId("FL_LOWER_LEG_0"),
+                        (int)gmodel.getGeometryId("FR_UPPER_LEG_0"),
+                        (int)gmodel.getGeometryId("FR_LOWER_LEG_0"),
+                        (int)gmodel.getGeometryId("HL_UPPER_LEG_0"),
+                        (int)gmodel.getGeometryId("HL_LOWER_LEG_0"),
+                        (int)gmodel.getGeometryId("HR_UPPER_LEG_0"),
+                        (int)gmodel.getGeometryId("HR_LOWER_LEG_0")};
+
+    // Add corresponding collision pairs to the model
+    for(int i=0; i<8; i++)
+    {
+        for(int j=i+1; j<8; j++)
+        {
+            gmodel.addCollisionPair(pinocchio::CollisionPair(geoms[i],geoms[j]));
+        }
+    }
+
+    // Compute the distance results
+    pinocchio::GeometryData gdata(gmodel);
+    pinocchio::computeDistances(model,data,gmodel,gdata,config);
+    std::vector< fcl::DistanceResult > collisions_dist = gdata.distanceResults; 
+    // Populate a nicely shaped matrix with the results
+    Eigen::Matrix<double, 8, 8> result;
+    for(int i=0; i<8; i++)
+    {
+        result(i,i) = -1;
+        for(int j=i+1; j<8; j++)
+        {
+            result(i,j) = collisions_dist[gmodel.findCollisionPair(pinocchio::CollisionPair(geoms[i],geoms[j]))].min_distance;
+            result(j,i) = collisions_dist[gmodel.findCollisionPair(pinocchio::CollisionPair(geoms[i],geoms[j]))].min_distance;
         }
     }
     return result;

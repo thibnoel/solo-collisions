@@ -46,6 +46,43 @@ std::pair<int,int>* getSoloLegsFramesPairs(pinocchio::Model rmodel)
     return framesPairs;
 }
 
+std::pair<int,int>* getSoloLegsGeomPairs(pinocchio::GeometryModel gmodel)
+{
+    // Frames pairs
+    static std::pair<int,int> geomPairs[20] = {// FL - FR
+                                          getGeomPair("FL_UPPER_LEG_0","FR_UPPER_LEG_0", gmodel),
+                                          getGeomPair("FL_UPPER_LEG_0","FR_LOWER_LEG_0", gmodel),
+                                          getGeomPair("FL_LOWER_LEG_0","FR_UPPER_LEG_0", gmodel),
+                                          getGeomPair("FL_LOWER_LEG_0","FR_LOWER_LEG_0", gmodel),
+                                          // FL - HL
+                                          //getFramesPair("FL_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                          getGeomPair("FL_UPPER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                          getGeomPair("FL_LOWER_LEG_0","HL_UPPER_LEG_0", gmodel),
+                                          getGeomPair("FL_LOWER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                          // FL - HR
+                                          //getFramesPair("FL_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                          getGeomPair("FL_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                          getGeomPair("FL_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                          getGeomPair("FL_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                          // FR - HL
+                                          //getFramesPair("FR_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                          getGeomPair("FR_UPPER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                          getGeomPair("FR_LOWER_LEG_0","HL_UPPER_LEG_0", gmodel),
+                                          getGeomPair("FR_LOWER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                          // FR - HR
+                                          //getFramesPair("FR_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                          getGeomPair("FR_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                          getGeomPair("FR_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                          getGeomPair("FR_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                          // HL - HR
+                                          getGeomPair("HL_UPPER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                          getGeomPair("HL_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                          getGeomPair("HL_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                          getGeomPair("HL_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel)
+                                          };
+    return geomPairs;
+}
+/*
 std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* getSoloLegsADCapsPairs(Capsule<ADScalar>* ADCapsApprox)
 {
     // AD capsules pairs (code gen. arg.)
@@ -96,6 +133,7 @@ Eigen::Matrix<double, 8, 8> reshapeCodegenResult(Eigen::Matrix<double, Eigen::Dy
     return result;
 
 }
+*/
 
 int main(int argc, char *argv[])
 {
@@ -121,7 +159,11 @@ int main(int argc, char *argv[])
     ***************************************************************************/
     // Load Solo 12 model
         // Setup URDF path
-    const std::string urdf_filename = "/opt/openrobots/share/example-robot-data/robots/solo_description/robots/solo12.urdf";
+        // Original model
+    //const std::string urdf_filename = "/opt/openrobots/share/example-robot-data/robots/solo_description/robots/solo12.urdf";
+    //const std::string robots_model_path = "/opt/openrobots/share/example-robot-data/robots";
+        // Simplified model
+    const std::string urdf_filename = "/home/tnoel/stage/solo-collisions/urdf/solo12_simplified.urdf";
     const std::string robots_model_path = "/opt/openrobots/share/example-robot-data/robots";
 
         // Load and build the Model and GeometryModel from URDF 
@@ -131,15 +173,17 @@ int main(int argc, char *argv[])
     pinocchio::urdf::buildGeom(rmodel, urdf_filename, pinocchio::COLLISION, gmodel, robots_model_path);
         // Generate model data
     Data rdata(rmodel); 
+    GeometryData gdata(gmodel);
 
     // Capsules geometries
-    const double LEFT_UPPER_CAPSULE_RADIUS = 0.016;
+    /*
+    const double LEFT_UPPER_CAPSULE_RADIUS = 0.0 ;//0.016;
     Eigen::Matrix<double, 3, 1> LEFT_UPPER_CAPSULE_A;
     Eigen::Matrix<double, 3, 1> LEFT_UPPER_CAPSULE_B;
     LEFT_UPPER_CAPSULE_A << 0.0, 0.0, 0.1;
     LEFT_UPPER_CAPSULE_B << 0.0, 0.0, -0.1;
     
-    const double LEFT_LOWER_CAPSULE_RADIUS = 0.015;
+    const double LEFT_LOWER_CAPSULE_RADIUS = 0.0; //0.015;
     Eigen::Matrix<double, 3, 1> LEFT_LOWER_CAPSULE_A;
     Eigen::Matrix<double, 3, 1> LEFT_LOWER_CAPSULE_B;
     LEFT_LOWER_CAPSULE_A << 0.0, 0.0, 0.07;
@@ -155,19 +199,29 @@ int main(int argc, char *argv[])
     Eigen::Matrix<double, 3, 1> RIGHT_LOWER_CAPSULE_A;
     Eigen::Matrix<double, 3, 1> RIGHT_LOWER_CAPSULE_B;
     RIGHT_LOWER_CAPSULE_A << 0.0, 0.0, 0.07;
-    RIGHT_LOWER_CAPSULE_B << 0.0, 0.0, -0.07;
+    RIGHT_LOWER_CAPSULE_B << 0.0, 0.0, -0.07;*/
 
     // Lower legs spheres (base-lower legs pairs)
+    /*
     const double LOW_LEGS_SPHERE_RADIUS = 0.015;
     Eigen::Matrix<double, 3, 1> LOW_LEGS_SPHERE_CENTER;
     LOW_LEGS_SPHERE_CENTER << 0.0, 0.0, -0.07;
-
+    */
     // Base link rectangleSweptShere dimensions
+    /*
     const double BASE_LENGTH = 0.3;
     const double BASE_WIDTH = 0.16;
     const double BASE_RADIUS = 0.02;
     Eigen::Matrix<double, 3, 1> BASE_RECT_TOPLEFT;
     BASE_RECT_TOPLEFT << -BASE_LENGTH*0.5, -BASE_WIDTH*0.5, 0.0;
+    */
+
+    //std::pair<int, int> test_pair = getGeomPair("FL_UPPER_LEG_0", "FR_UPPER_LEG_0", gmodel);
+
+    //std::pair<int, int> test_pairs[1] = {test_pair};
+    //std::cout << gmodel.geometryObjects[test_pair.first].geometry->getNodeType() << std::endl;
+    //std::cout << computeCapsuleAB<double>(gmodel.geometryObjects[test_pair.first].geometry) << std::endl;
+    //std::cout << gmodel.geometryObjects[test_pair.first].placement << std::endl;
     
    
     /***************************************************************************
@@ -176,13 +230,15 @@ int main(int argc, char *argv[])
     // Predefine frames and capsules pairs (nb of pairs evaluated chosen in tapeADFun)
         // Predefined frames pairs
     std::pair<int,int>* framesPairs = getSoloLegsFramesPairs(rmodel);
+    std::pair<int,int>* geomPairs = getSoloLegsGeomPairs(gmodel);
+    /*
         // Predefined double capsules
     struct Capsule<double> LeftUpperCaps = {LEFT_UPPER_CAPSULE_A, LEFT_UPPER_CAPSULE_B, LEFT_UPPER_CAPSULE_RADIUS};
     struct Capsule<double> LeftLowerCaps = {LEFT_LOWER_CAPSULE_A, LEFT_LOWER_CAPSULE_B, LEFT_LOWER_CAPSULE_RADIUS};
     struct Capsule<double> RightUpperCaps = {RIGHT_UPPER_CAPSULE_A, RIGHT_UPPER_CAPSULE_B, RIGHT_UPPER_CAPSULE_RADIUS};
     struct Capsule<double> RightLowerCaps = {RIGHT_LOWER_CAPSULE_A, RIGHT_LOWER_CAPSULE_B, RIGHT_LOWER_CAPSULE_RADIUS};
 
-    struct Capsule<double> capsulesApprox[4] = {LeftUpperCaps, LeftLowerCaps, RightUpperCaps, RightLowerCaps};
+    //struct Capsule<double> capsulesApprox[4] = {LeftUpperCaps, LeftLowerCaps, RightUpperCaps, RightLowerCaps};
         // Predefined AD capsules
     struct Capsule<ADScalar> ADLeftUpperCaps = LeftUpperCaps.cast<ADScalar>(); 
     struct Capsule<ADScalar> ADRightUpperCaps = RightUpperCaps.cast<ADScalar>();
@@ -190,9 +246,10 @@ int main(int argc, char *argv[])
     struct Capsule<ADScalar> ADRightLowerCaps = RightLowerCaps.cast<ADScalar>();
 
     struct Capsule<ADScalar> ADCapsulesApprox[4] = {ADLeftUpperCaps, ADLeftLowerCaps, ADRightUpperCaps, ADRightLowerCaps};
-       
+    */
+    
         // AD Capsules pairs (code gen. arg.)
-    std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* ADCapsPairs = getSoloLegsADCapsPairs(ADCapsulesApprox);       
+    //std::pair<Capsule<ADScalar>,Capsule<ADScalar>>* ADCapsPairs = getSoloLegsADCapsPairs(ADCapsulesApprox);       
 
 
     /*------- TEST : sphere-RSS lower legs collision -----*/      
@@ -203,41 +260,41 @@ int main(int argc, char *argv[])
                                           getFramesPair("base_link","HR_LOWER_LEG", rmodel)};*/
 
 
-    struct RectSweptSph<double> base_rss = {BASE_RECT_TOPLEFT, BASE_LENGTH, BASE_WIDTH, BASE_RADIUS};
-    struct Sphere<double> fl_lower_sph = {LOW_LEGS_SPHERE_CENTER, LOW_LEGS_SPHERE_RADIUS};
+    //struct RectSweptSph<double> base_rss = {BASE_RECT_TOPLEFT, BASE_LENGTH, BASE_WIDTH, BASE_RADIUS};
+    //struct Sphere<double> fl_lower_sph = {LOW_LEGS_SPHERE_CENTER, LOW_LEGS_SPHERE_RADIUS};
 
-    struct RectSweptSph<ADScalar> AD_base_rss = base_rss.cast<ADScalar>();
-    struct Sphere<ADScalar> AD_fl_lower_sph = fl_lower_sph.cast<ADScalar>();                                               
+    //struct RectSweptSph<ADScalar> AD_base_rss = base_rss.cast<ADScalar>();
+    //struct Sphere<ADScalar> AD_fl_lower_sph = fl_lower_sph.cast<ADScalar>();                                               
 
     // Generate the code for the specified frames and capsule parameters, and compile it as library
-    ADFun genFun = tapeADCapsulesDistanceCheck(rmodel, framesPairs, ADCapsPairs, nb_pairs);
-    generateCompileCLib("solo_autocollision", genFun);
+    //ADFun genFun = newTapeADCapsulesDistanceCheck(rmodel, gmodel, framesPairs, geomPairs, nb_pairs);
+    //generateCompileCLib("solo_autocollision", genFun);
 
     //ADFun genFun = tapeADPointRSSMultDistanceCheck(rmodel, framesBaseLL, AD_base_rss, AD_fl_lower_sph, 4);
     //generateCompileCLib("solo_autocollision_LL_BASE", genFun);
 
     // Test Jacobian
     // TODO
-    //ADFun genFun = tapeADJacobianDistanceCheck(rmodel, framesPairs[0], std::make_pair(LEFT_UPPER_CAPSULE_A, RIGHT_UPPER_CAPSULE_A));
-    //generateCompileCLib("solo_autocollision_Jacobian", genFun);
+    ADFun genFun = tapeADCapsulesDistCheckAndJac(rmodel, gmodel, framesPairs, geomPairs, nb_pairs);
+    generateCompileCLib("solo_autocollision_Jacobian", genFun);
 
     /***************************************************************************
     *                      Generated code evaluation
     ***************************************************************************/
-    const std::string LIBRARY_NAME = "./libCGsolo_autocollision";
+    /*const std::string LIBRARY_NAME = "./libCGsolo_autocollision";
     const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
-    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision");
+    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision");*/
 
     /*const std::string LIBRARY_NAME = "./libCGsolo_autocollision_LL_BASE";
     const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
     std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision_LL_BASE");*/
 
-    /*const std::string LIBRARY_NAME = "./libCGsolo_autocollision_Jacobian";
+    const std::string LIBRARY_NAME = "./libCGsolo_autocollision_Jacobian";
     const std::string LIBRARY_NAME_EXT = LIBRARY_NAME + CppAD::cg::system::SystemInfo<>::DYNAMIC_LIB_EXTENSION;
     CppAD::cg::LinuxDynamicLib<double> dynamicLib(LIBRARY_NAME_EXT);
-    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision_Jacobian");*/
+    std::unique_ptr<CppAD::cg::GenericModel<double> > model = dynamicLib.model("solo_autocollision_Jacobian");
 
     // Generated code evaluation
         // Input : Get a random config.
@@ -249,25 +306,29 @@ int main(int argc, char *argv[])
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;
     Y_test.resize(20);
     //Y_test.resize(36);
-
+    
     // Function evaluation with start and stop timestamps
     auto start_cg = high_resolution_clock::now();
-    model->ForwardZero(X_test, Y_test);
+    for (int k = 0; k<1e6; k++)
+    {
+        X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+        model->ForwardZero(X_test, Y_test);
+    }
     auto stop_cg = high_resolution_clock::now(); 
-    auto duration_cg = duration_cast<nanoseconds>(stop_cg - start_cg); 
-
+    auto duration_cg = duration_cast<microseconds>(stop_cg - start_cg); 
 
     /***************************************************************************
     *                              FCL evaluation
     ***************************************************************************/
     Eigen::Matrix<double, 8, 8> fcl_result;
-    fcl_result = getSoloFCLResult(rmodel,gmodel,rdata,X_test,capsulesApprox);
+    //fcl_result = getSoloFCLResult(rmodel,gmodel,rdata,X_test,capsulesApprox);
+    fcl_result = newGetSoloFCLResult(rmodel,gmodel,rdata,X_test);
     // Print output
     std::cout << "---- CODE EVALUATION ----" << std::endl;
     std::cout << "X = \n" << X_test << std::endl;
     //std::cout << "\tDist. result (codegen): \n" << reshapeCodegenResult(Y_test) << std::endl;
     std::cout << "\tDist. result (codegen): \n" << Y_test<< std::endl;
-    std::cout << "\nTime taken by function: " << ((int)duration_cg.count())*0.001 << " microseconds" << std::endl; 
+    std::cout << "\nTime taken by function: " << ((int)duration_cg.count()) << " microseconds" << std::endl; 
     std::cout << "\n\tDist. result (FCL): \n" << fcl_result << std::endl;
     std::cout << "\n" << std::endl;    
 
