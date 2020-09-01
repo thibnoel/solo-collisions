@@ -39,8 +39,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 1> readCSV(std::istream &input, int matSiz
             b++;
         }       
         a++;
-    }
-    std::cout << "a : " << a << " b : " << b << std::endl;  
+    } 
     return out;
 }
 
@@ -86,25 +85,25 @@ std::pair<Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic>,
 
     for(int i=0; i<n; i++)
     {
-        yGradCoeff = 2*sPI*const_i*(Scalar)(1.*i/n);
+        yGradCoeff = 2*sPI*const_i*(Scalar)((1.*i)/(1.*n));
         if(i==n/2)
         {
             yGradCoeff = zero;
         }
         else if(i>n/2)
         {
-            yGradCoeff = 2*sPI*const_i*(Scalar)(1.*(i-n)/n);
+            yGradCoeff = 2*sPI*const_i*(Scalar)((1.*(i-n))/(1.*n));
         }
         for(int j=0; j<m; j++)
         {
-            xGradCoeff = 2*sPI*const_i*(Scalar)(1.*j/m);
+            xGradCoeff = 2*sPI*const_i*(Scalar)((1.*j)/(1.*m));
             if(j==m/2)
             {
                 xGradCoeff = zero;
             }
             else if(j>m/2)
             {
-                xGradCoeff = 2*sPI*const_i*(Scalar)(1.*(j-m)/m);
+                xGradCoeff = 2*sPI*const_i*(Scalar)((1.*(j-m))/(1.*m));
             }
             Jx(i,j) = xGradCoeff*FTcoeffs(i,j);
             Jy(i,j) = yGradCoeff*FTcoeffs(i,j);
@@ -113,7 +112,8 @@ std::pair<Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic>,
     return std::make_pair(Jx, Jy);
 }
 
-// Evaluate a 2D function from its FT coefficients 
+// Evaluate a 2D function from its FT coefficients (NON SHIFTED)
+// Expect x,y in radians
 template <typename Scalar>
 std::complex<Scalar> evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs, Scalar x, Scalar y)
 {
@@ -123,14 +123,17 @@ std::complex<Scalar> evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::D
     std::complex<Scalar> eval;
     eval = std::complex<double>{0,0};
     
-    std::complex<Scalar> consti;
-    consti = std::complex<double>{0,1};
+    std::complex<Scalar> const_i;
+    const_i = std::complex<double>{0,1};
 
-    int m = (int)FTcoeffs.rows();
-    int n = (int)FTcoeffs.cols();
+    int n = (int)FTcoeffs.rows();
+    int m = (int)FTcoeffs.cols();
 
     Scalar coeffThreshold;
     coeffThreshold = 1e-6;
+
+    x = x*m/(2*PI);
+    y = y*n/(2*PI);
 
     for(int i=0; i<n; i++)
     {
@@ -143,7 +146,7 @@ std::complex<Scalar> evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::D
             coeffImag = CppAD::CondExpLt(std::abs(FTcoeffs(i,j)), coeffThreshold, zero, FTcoeffs(i,j).imag());
             std::complex<Scalar> coeff(coeffReal, coeffImag);
 
-            eval += coeff*(cos(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)) + consti*sin(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)));
+            eval += coeff*(cos(2*PI*(y*i/n + x*j/m)) + const_i*sin(2*PI*(y*i/n + x*j/m)));
         }
     }
     std::complex<Scalar> scale;
@@ -151,20 +154,23 @@ std::complex<Scalar> evaluateFromFT(Eigen::Matrix<std::complex<Scalar>, Eigen::D
     eval/=scale;
     return eval;
 }
-// NOT TESTED
-/*template <typename Scalar> 
-Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, 1> evaluateJacobianFromFFT(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs, Scalar x, Scalar y)
+
+// Evaluate a 2D function from its FT coefficients (SHIFTED)
+// Expect x,y in radians
+template <typename Scalar>
+std::complex<Scalar> evaluateFromFTShift(Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs, Scalar x, Scalar y)
 {
     Scalar zero;
     zero = 0;
-
-    int m = (int)FTcoeffs.rows();
-    int n = (int)FTcoeffs.cols();
-
+    
+    std::complex<Scalar> eval;
+    eval = std::complex<double>{0,0};
+    
     std::complex<Scalar> const_i;
     const_i = std::complex<double>{0,1};
-    std::complex<Scalar> Jx;
-    std::complex<Scalar> Jy;
+
+    int n = (int)FTcoeffs.rows();
+    int m = (int)FTcoeffs.cols();
 
     Scalar coeffThreshold;
     coeffThreshold = 1e-6;
@@ -180,18 +186,14 @@ Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, 1> evaluateJacobianFromFFT(E
             coeffImag = CppAD::CondExpLt(std::abs(FTcoeffs(i,j)), coeffThreshold, zero, FTcoeffs(i,j).imag());
             std::complex<Scalar> coeff(coeffReal, coeffImag);
 
-            Jx += 2*PI*(x*j/m)*const_i*coeff*(cos(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)) + const_i*sin(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)));
-            Jy += 2*PI*(y*i/n)*const_i*coeff*(cos(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)) + const_i*sin(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)));
+            eval += coeff*(cos(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)) + const_i*sin(2*PI*(y*(i-n/2)/n + x*(j-m/2)/m)));
         }
     }
     std::complex<Scalar> scale;
     scale = std::complex<double>{(double)n*m,0};
-
-    Eigen::Matrix<std::complex<Scalar>, Eigen::Dynamic, 1> J;
-    J.resize(2);
-    J << Jx/scale, Jy/scale;
-    return J;  
-}*/
+    eval/=scale;
+    return eval;
+}
 
 // Generates the model for the function f(q, pair) = dist. between frames of given pair (defined by the FT coeffs!)
 ADFun tapeADShoulderDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen::Dynamic, Eigen::Dynamic> FTcoeffs)
@@ -254,10 +256,10 @@ ADFun tapeAD4ShouldersDistanceCheck(Eigen::Matrix<std::complex<ADScalar>, Eigen:
     dFR = evaluateFromFT<ADScalar>(FL_FTcoeffs, -ad_X[2], ad_X[3]); // coeff : opposite on x dir
     dHL = evaluateFromFT<ADScalar>(FL_FTcoeffs, ad_X[4], -ad_X[5]); // coeff : opposite on y dir
     dHR = evaluateFromFT<ADScalar>(FL_FTcoeffs, -ad_X[6], -ad_X[7]); // coeff : opposite on both dirs
-    ad_Y[0] = CppAD::sqrt(dFL.real()*dFL.real() - dFL.imag()*dFL.imag());
-    ad_Y[1] = CppAD::sqrt(dFR.real()*dFR.real() - dFR.imag()*dFR.imag());
-    ad_Y[2] = CppAD::sqrt(dHL.real()*dHL.real() - dHL.imag()*dHL.imag());
-    ad_Y[3] = CppAD::sqrt(dHR.real()*dHR.real() - dHR.imag()*dHR.imag());
+    ad_Y[0] = dFL.real();
+    ad_Y[1] = dFR.real();
+    ad_Y[2] = dHL.real();
+    ad_Y[3] = dHR.real();
     ad_fun.Dependent(ad_X, ad_Y);
 
     return ad_fun;
