@@ -19,38 +19,18 @@ def computeVelJacobian(model, data, config, fInd1, fInd2, p1, p2, floatingBase=T
     oMf1 = relativePlacement(model, data, config, model.getFrameId("base_link"), fInd1)
     oMf2 = relativePlacement(model, data, config, model.getFrameId("base_link"), fInd2)
 
-    normal = oMf1.rotation@p1 + oMf1.translation - (oMf1.rotation@p2 + oMf2.translation)
-    n1 = oMf1.inverse().rotation@normal
-    n2 = oMf2.inverse().rotation@normal
-    
     # Frames jacobians
     f1Jf1 = pio.computeFrameJacobian(model, data, config, fInd1, pio.LOCAL)
     f2Jf2 = pio.computeFrameJacobian(model, data, config, fInd2, pio.LOCAL)
     
-    f1Mp1 = pio.SE3(pio.Quaternion.FromTwoVectors(np.matrix([0,0,1]).T, n1), np.array(p1))
-    f2Mp2 = pio.SE3(pio.Quaternion.FromTwoVectors(np.matrix([0,0,1]).T, normal), np.array(p2))
-
-    # Old version
-    '''
     # get rid of free floating base coord.
     if(floatingBase):
         f1Jf1 = f1Jf1[:,6:] 
         f2Jf2 = f2Jf2[:,6:]
     # Compute local velocities
-    f1Jp1 = f1Jf1[:3,:] + pio.skew(p1)@f1Jf1[3:,:]
-    f2Jp2 = f2Jf2[:3,:] + pio.skew(p2)@f2Jf2[3:,:]
-    # Compute world vel.
-    oJp1 = oMf1.rotation @ f1Jp1
-    oJp2 = oMf2.rotation @ f2Jp2
-    '''
+    f1Jp1 = f1Jf1[:3,:] - pio.skew(p1)@f1Jf1[3:,:]
+    f2Jp2 = f2Jf2[:3,:] - pio.skew(p2)@f2Jf2[3:,:]
     
-    # get rid of free floating base coord.
-    if(floatingBase):
-        f1Jf1 = f1Jf1[:,6:] 
-        f2Jf2 = f2Jf2[:,6:]
-    # Compute local velocities
-    f1Jp1 = f1Jf1[:3,:] - pio.skew(f1Mp1.translation)@f1Jf1[3:,:]
-    f2Jp2 = f2Jf2[:3,:] - pio.skew(f2Mp2.translation)@f2Jf2[3:,:]
     # Compute world vel.
     oJp1 = oMf1.rotation @ f1Jp1
     oJp2 = oMf2.rotation @ f2Jp2

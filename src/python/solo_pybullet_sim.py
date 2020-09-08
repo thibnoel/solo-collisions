@@ -11,6 +11,7 @@ import pybullet_utils.bullet_client as bc
 from solo12_collision_gradient import computeDistJacobian
 from solo_shoulder_approx_torch_nn import *
 from solo_control import *
+from legs_cpp_wrapper import *
 
 
 def getPosVelJoints(robotID, revoluteJointIndices, physicsClient):
@@ -69,69 +70,90 @@ aq0 = np.zeros(robot.model.nv)
 trainedModel_path = "/home/tnoel/stage/solo-collisions/src/python/pytorch_data/test_2Dmodel_481.pth"
 shoulder_model = loadTrainedNeuralNet(trainedModel_path)
 
-d_ref_legs = 0.1
-d_ref_shoulders = 0.2
-
 q_list = []
 tau_q_list = []
 dist_list = []
 
-print(physicsClient.getNumJoints(robotID))
-for k in range(1000):
 
+# Gen code binding test
+so_file = "/home/tnoel/stage/solo-collisions/libcoll_mod.so"
+cCollFun = CDLL(so_file)
+
+
+print(physicsClient.getNumJoints(robotID))
+for k in range(400):    
+    # Step Bullet simulation
     physicsClient.stepSimulation()
     time.sleep(0.02)
-    
-    q, vq = getPosVelJoints(robotID, revoluteJointIndices, physicsClient)
 
+    # Get robot current state
+    q, vq = getPosVelJoints(robotID, revoluteJointIndices, physicsClient)
+    
     # compute dynamic drift -- Coriolis, centrifugal, gravity
     b = pio.rnea(robot.model, robot.data, q, vq, aq0)
     # compute mass matrix M
     M = pio.crba(robot.model, robot.data, q)
+    
+    # Zero torque
     tau_q = np.zeros(12)
-    #ref_aq = computeAcceleration(M,b,tau_q)
-    
+    # PD torque    
+    q_des = robot.q0.copy()
+    q_des[0] += 2*np.sin(0.01*k)
+    q_des[3] += 0.5
+    Kp = 20
+    Kv = 0.05
+    tau_q_PD = compute_tau_PD(q, q_des, vq, Kp, Kv)#, q_ind=q_ind)
+    # Friction torque
     Kf = 0.002
-    tau_q = -Kf * vq
-    
-    #ref_aq = computeAcceleration(M,b,tau_q)
-
-    
-    k_fixed = 10
+    tau_q_f = -Kf * vq
+    # Zero acceleration torque
+    k_fixed = 25
     tau_fixed = -k_fixed*M@vq + b
-    tau_q += tau_fixed
     
-    dist = 5*np.ones(len(gmodel.collisionPairs) + 4)
+    # Initialize dist log
+    dist = 5*np.zeros(len(gmodel.collisionPairs) + 4)
     
-    ref_aq = computeAcceleration(M,b,tau_q)
+    # Compute reference acceleration
+    ref_aq = computeAcceleration(M, b, tau_q_f)
 
-    legs_dist, Jlegs, legs_pairs = compute_legs_Jdist_avoidance(q, rmodel, rdata, gmodel, gdata, dref=d_ref_legs)
-    shoulders_dist, Jshd, shoulders_pairs = compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, gdata, dref=d_ref_shoulders, characLength=0.34)
+    # Get results for the legs from FCL
+    legs_dist, Jlegs, legs_pairs = compute_legs_Jdist_avoidance(q, rmodel, rdata, gmodel, gdata)
+    # Get results for the shoulders from a trained neural network
+    shoulders_dist, Jshd, shoulders_pairs = compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, gdata, characLength=0.34)
 
-    #add_fixed = True
+    ### Get results from C generated code
+    c_results = getLegsCollisionsResults(q, cCollFun)
+    c_dist_legs = getDistances(c_results)
+    c_Jlegs = getJacobians(c_results)
 
-    if len(Jlegs) > 0: 
-        #tau_q -= tau_fixed
-        tau_legs_coll = compute_tau_avoidance(ref_aq, M, b, np.vstack(Jlegs), np.array(legs_dist),1000)
-        tau_q += tau_legs_coll
+    legs_dist = c_dist_legs
+    Jlegs = c_Jlegs
 
-        for i in range(len(legs_pairs)):
-            for j in range(len(gmodel.collisionPairs)):
-                if(legs_pairs[i] == gmodel.collisionPairs[j]):
-                    dist[j] = d_ref_legs - legs_dist[i]
-                    #dist[j] = legs_dist[i]
+    # Safety distance 
+    safety_dist = 0.1
+    legs_dist = legs_dist - safety_dist
 
-    if len(Jshd) > 0: 
-        #tau_q -= tau_fixed
-        tau_shoulders_coll = compute_tau_avoidance(ref_aq, M, b, np.vstack(Jshd), np.array(shoulders_dist),1000)
-        tau_q += tau_shoulders_coll
+    kdist = 1000
+    kv = 50
+    
+    Jdist = np.vstack((Jlegs, Jshd))
+    dist_vec = np.concatenate((legs_dist, shoulders_dist))
+    
+    # Compute avoidance torque from ref. acceleration
+    tau_coll = compute_tau_avoidance(ref_aq, M, b, -np.vstack(Jdist), np.array(dist_vec), kdist,kv)
+    tau_q += tau_coll
 
-        for i in range(len(shoulders_pairs)):
-            for j in range(4):
-                if(shoulders_pairs[i] == j):
-                    #dist[len(gmodel.collisionPairs) + j] = shoulders_dist[i]
-                    dist[len(gmodel.collisionPairs) + j] = d_ref_shoulders - shoulders_dist[i]
+    for i in range(len(legs_pairs)):
+        for j in range(len(gmodel.collisionPairs)):
+            if(legs_pairs[i] == gmodel.collisionPairs[j]):
+                dist[j] = legs_dist[i] + safety_dist
+    
+    for i in range(len(shoulders_pairs)):
+        for j in range(4):
+            if(shoulders_pairs[i] == j):
+                dist[len(gmodel.collisionPairs) + j] = shoulders_dist[i]
 
+    # Save logs
     q_list.append(q)
     tau_q_list.append(tau_q)
     dist_list.append(dist)
@@ -149,6 +171,7 @@ tau_q_list = np.array(tau_q_list)
 dist_list = np.array(dist_list)
 
 plt.figure()
+plt.suptitle("k_d = {}, k_v = {}, safe_dist = {}".format(kdist, kv, safety_dist))
 
 plt.subplot(1,3,1)
 for k in range(q_list.shape[1]):
@@ -169,8 +192,8 @@ for k in range(dist_list.shape[1]):
     plt.plot(dist_list[:,k], [i for i in range(len(dist_list))], label="d[{}]".format(k))
     #plt.plot(dist_list[:,k], label="d[{}]".format(k))
 plt.vlines(0,0,len(dist_list)+1, linestyles='solid', colors='black')
-plt.vlines(d_ref_legs,0,len(dist_list)+1, linestyles='dashed', colors='green')
-plt.vlines(d_ref_shoulders,0,len(dist_list)+1, linestyles='dashed', colors='green')
+#plt.vlines(d_ref_legs,0,len(dist_list)+1, linestyles='dashed', colors='green')
+#plt.vlines(d_ref_shoulders,0,len(dist_list)+1, linestyles='dashed', colors='green')
 plt.legend()
 plt.title("Pairs dist")
 

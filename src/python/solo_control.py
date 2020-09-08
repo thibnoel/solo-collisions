@@ -1,6 +1,6 @@
 import pinocchio as pio
 from example_robot_data.robots_loader import *
-from example_robot_data import loadSolo
+from example_robot_data import *
 import hppfcl
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,12 +23,12 @@ def loadSolo(solo=True):
     URDF_SUBPATH = "/solo_description/robots/" + URDF_FILENAME
     modelPath = getModelPath(URDF_SUBPATH)
     # Load URDF file
-    robot = RobotWrapper.BuildFromURDF(modelPath + URDF_SUBPATH, [getVisualPath(modelPath)])
+    #robot = RobotWrapper.BuildFromURDF(modelPath + URDF_SUBPATH, [getVisualPath(modelPath)])
                                        #pinocchio.JointModelFreeFlyer())
     # Load SRDF file
-    robot.q0 = readParamsFromSrdf(robot.model, modelPath + SRDF_SUBPATH, False, False, "standing")
+    #robot.q0 = readParamsFromSrdf(robot.model, modelPath + SRDF_SUBPATH, False, False, "standing")
     # Add the free-flyer joint limits
-    addFreeFlyerJointLimits(robot.model)
+    #addFreeFlyerJointLimits(robot.model)
 
     # SIMPLIFIED
     
@@ -75,30 +75,31 @@ def initSolo():
     # Add the collision pairs to the geometric model
     gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, FR_upper_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, FR_lower_leg_geom))
-    #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_lower_leg_geom))
-    #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_lower_leg_geom))
-    
-    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_lower_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, FR_upper_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, FR_lower_leg_geom))
+
+    #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_upper_leg_geom))
+    gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_lower_leg_geom))
+    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_upper_leg_geom))
+    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_lower_leg_geom))
+   
+    #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_upper_leg_geom))
+    gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_lower_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HR_upper_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HR_lower_leg_geom))
 
     #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HL_upper_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HL_lower_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_lower_leg_geom))
-
     gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HL_upper_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HL_lower_leg_geom))
+
+    #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_upper_leg_geom))
+    gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_lower_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HR_upper_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HR_lower_leg_geom))
 
     gmodel.addCollisionPair(pio.CollisionPair(HL_upper_leg_geom, HR_upper_leg_geom))
-    
+    gmodel.addCollisionPair(pio.CollisionPair(HL_upper_leg_geom, HR_lower_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_upper_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_lower_leg_geom))
 
@@ -149,10 +150,9 @@ def getCollisionResults(q, rmodel, rdata, gmodel, gdata):
     return collisions_dist
 
 
-def compute_legs_Jdist_avoidance(q, rmodel, rdata, gmodel, gdata, dref=0.05):
+def compute_legs_Jdist_avoidance(q, rmodel, rdata, gmodel, gdata):
     counter = 0
     collisions_result = getCollisionResults(q, rmodel, rdata, gmodel, gdata)
-    coll_imminent = False
     Jdist = []
     dist_vec = []
     pairs = []
@@ -167,24 +167,20 @@ def compute_legs_Jdist_avoidance(q, rmodel, rdata, gmodel, gdata, dref=0.05):
         frame1 = gmodel.geometryObjects[gmodel.collisionPairs[counter].first].parentFrame
         frame2 = gmodel.geometryObjects[gmodel.collisionPairs[counter].second].parentFrame
 
-        if collDist < dref:
-            coll_imminent = True
-            #Jlocal_dist = computeDistJacobianFiniteDiff(rmodel, rdata, q, frame1, frame2, p1, p2, floatingBase=False)
-            Jlocal_dist = computeDistJacobian(rmodel, rdata, q, frame1, frame2, p1, p2, floatingBase=False)
-            #Jdist.append(Jlocal_dist)
-            #dist_vec.append(collDist)
-            ### EXPERIMENTAL
-            dist_vec.append(dref - collDist)
-            Jdist.append(-Jlocal_dist)
-            
-            pairs.append(gmodel.collisionPairs[counter])
+        #if collDist < dref:
+        #Jlocal_dist = computeDistJacobianFiniteDiff(rmodel, rdata, q, frame1, frame2, p1, p2, floatingBase=False)
+        Jlocal_dist = computeDistJacobian(rmodel, rdata, q, frame1, frame2, p1, p2, floatingBase=False)
+
+        dist_vec.append(collDist)
+        Jdist.append(Jlocal_dist)
+        
+        pairs.append(gmodel.collisionPairs[counter])
             
         counter += 1
-    
     return dist_vec, Jdist, pairs
 
 
-def compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, gdata, dref=0.05, characLength=0.16):
+def compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, gdata, characLength=0.16):
     Jdist = []
     dist_vec = []
     pairs = []
@@ -217,25 +213,21 @@ def compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, 
     for k in range(4):
         Jlocal_dist = np.zeros(len(q))
         collDist, jac = evalModel(q_ind[k], shoulders_q[k], 0.08, shoulder_sym=shoulder_syms[k])
-        if collDist < dref:
-            Jlocal_dist[q_ind[k]] = np.array(jac)
-            #Jdist.append(Jlocal_dist)
-            #dist_vec.append(collDist)
+        #if collDist < dref:
+        Jlocal_dist[q_ind[k]] = np.array(jac)
+        Jdist.append(Jlocal_dist)
+        dist_vec.append(collDist)
 
-            Jdist.append(-Jlocal_dist)
-            dist_vec.append(dref - collDist)
-
-            pairs.append(k)
-
+        pairs.append(k)
     return dist_vec, Jdist, pairs
 
 
-def compute_tau_avoidance(aq, M, b, Jdist, dist_vec, kdist):
-    # Solve min_q .5 qHq - gq s.t. Cq <= d
-    d = kdist*dist_vec + Jdist@aq
+def compute_tau_avoidance(aq, M, b, Jdist, dist_vec, kdist, kv):
+    # Solve min_aq .5 aqHaq - gaq s.t. Caq <= d
+    d = kdist*dist_vec + kv*Jdist@aq
     C = -Jdist.T
     g = np.zeros(len(aq))
-    aq_sol, _, _, _, _, _ = solve_qp(M, g, C, d)
+    aq_sol, _, _, _, _, _ = solve_qp(M, g, C, -d)
 
     aq_sol = aq_sol + aq
     
