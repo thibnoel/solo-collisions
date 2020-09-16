@@ -93,7 +93,7 @@ def run_sim(n_steps, q, vq, aq0, q_des):
         #else:
         
         if len(Jlegs) > 0: 
-            tau_legs_coll = compute_tau_avoidance(free_aq, M, b, np.vstack(Jlegs), np.array(legs_dist),100)
+            tau_legs_coll = compute_tau_avoidance(free_aq, M, b, -np.vstack(Jlegs), np.array(legs_dist),100)
             tau_q += k_tau_legs*tau_legs_coll
             
             for i in range(len(legs_pairs)):
@@ -131,7 +131,7 @@ def run_sim(n_steps, q, vq, aq0, q_des):
 trainedModel_path = "/home/tnoel/stage/solo-collisions/src/python/pytorch_data/test_2Dmodel_481.pth"
 shoulder_model = loadTrainedNeuralNet(trainedModel_path)
 
-robot, rmodel, rdata, gmodel, gdata = initSolo()
+robot, rmodel, rdata, gmodel, gdata = initSolo(solo=False)
 robot_config = robot.q0
 
 
@@ -144,8 +144,8 @@ if(enableGUI):
     gv = robot.viewer.gui
     # Display the robot
     robot.rebuildData() 
-    robot.displayCollisions(False)
-    robot.displayVisuals(True)
+    robot.displayCollisions(True)
+    robot.displayVisuals(False)
     robot.display(robot_config) 
     '''
     for n in gv.getNodeList():
@@ -194,7 +194,7 @@ k_tau_shoulders = 1
 
 
 
-q_list, tau_q_list, dist_list = run_sim(1000, q, vq, aq0, q_des)
+#q_list, tau_q_list, dist_list = run_sim(1000, q, vq, aq0, q_des)
 
 q_list = np.array(q_list)
 tau_q_list = np.array(tau_q_list)

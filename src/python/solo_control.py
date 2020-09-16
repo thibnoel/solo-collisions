@@ -22,21 +22,26 @@ def loadSolo(solo=True):
     SRDF_SUBPATH = "/solo_description/srdf/" + SRDF_FILENAME
     URDF_SUBPATH = "/solo_description/robots/" + URDF_FILENAME
     modelPath = getModelPath(URDF_SUBPATH)
+    """
     # Load URDF file
-    #robot = RobotWrapper.BuildFromURDF(modelPath + URDF_SUBPATH, [getVisualPath(modelPath)])
+    robot = RobotWrapper.BuildFromURDF(modelPath + URDF_SUBPATH) #, [getVisualPath(modelPath)])
                                        #pinocchio.JointModelFreeFlyer())
     # Load SRDF file
     #robot.q0 = readParamsFromSrdf(robot.model, modelPath + SRDF_SUBPATH, False, False, "standing")
     # Add the free-flyer joint limits
     #addFreeFlyerJointLimits(robot.model)
-
+    """
     # SIMPLIFIED
     
     urdf_path = "/home/tnoel/stage/solo-collisions/urdf/"
     mesh_dir = "/opt/openrobots/share/example-robot-data/robots/solo_description"
     #mesh_dir = "/home/tnoel/stage/solo-collisions/urdf/"
 
-    urdf_file = "solo12_simplified.urdf"
+    if solo:
+        urdf_file = "solo8_simplified.urdf"
+    else:
+        urdf_file = "solo12_simplified.urdf"
+    
 
     robot = RobotWrapper.BuildFromURDF(urdf_path + urdf_file, [mesh_dir])#, pio.JointModelFreeFlyer())
     robot.q0 = readParamsFromSrdf(robot.model, modelPath + SRDF_SUBPATH, False, False, "standing")
@@ -45,8 +50,8 @@ def loadSolo(solo=True):
     return robot
 
 # Initialize SOLO model
-def initSolo():
-    robot = loadSolo(solo=False)
+def initSolo(solo=True):
+    robot = loadSolo(solo=solo)
     # Get robot model, data, and collision model
     rmodel = robot.model
     rdata  = rmodel.createData()
@@ -139,7 +144,11 @@ def neuralNetShoulderResult(trainedNet, q_shoulder, offset):
     dist_pred = trainedNet(X_shoulder).item() - offset
 
     J_pred = trainedNet.jacobian(X_shoulder)
+    #print(J_pred)
     J_pred = torch.mm(J_pred.view(1,-1),torch.from_numpy(inputJacobian(X_shoulder.view(-1,1), dim)).float())
+    print(J_pred)
+
+    print("PyTorch : {}".format(dist_pred + offset))
     return dist_pred, J_pred.numpy()    
 
 
