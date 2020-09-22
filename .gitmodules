@@ -1,3 +1,7 @@
 [submodule "cmake"]
 	path = cmake
 	url = https://gitlab.laas.fr/jrl-umi3218/jrl-cmakemodules.git
+
+[submodule "yaml-cpp"]
+	path = yaml-cpp
+	url = https://https://github.com/jbeder/yaml-cpp.git

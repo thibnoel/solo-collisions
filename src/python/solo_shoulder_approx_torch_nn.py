@@ -38,6 +38,11 @@ class Net(nn.Module):
             s = s + "[{},{}] ".format(self.architecture[k][0], self.architecture[k][1])
         return s
 
+    def print_trained_params(self):
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                print(name, param.data)
+
     def forward(self, x):
         #x = x.view(-1, self.num_flat_features(x))
         for k in range(len(self.layers) - 1):
@@ -318,7 +323,7 @@ if __name__ == "__main__":
     #comparedTraining(10)
 
     # Instantiate a network
-    net = Net([[4, 20],[20,1]], activation=torch.relu)
+    net = Net([[4, 8],[8,1]], activation=torch.tanh)
     print(net.layers)
 
     #res = 100
@@ -441,8 +446,8 @@ if __name__ == "__main__":
     #ani.save("test.gif",writer=writer)
     #plt.show()
 
-    save=False
-    savepath = "./pytorch_data/test_2Dmodel_tanh_461.pth"
+    save=True
+    savepath = "./pytorch_data/test_2Dmodel_tanh_481.pth"
     if(save):
         torch.save(net.state_dict(), savepath)
         

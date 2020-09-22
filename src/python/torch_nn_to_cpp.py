@@ -32,9 +32,9 @@ def test2Dnet(trainedNet, q_ind, q_ranges, q_steps, test_data):
 
 
 # Load trained model
-trainedModel_path = "/home/tnoel/stage/solo-collisions/src/python/pytorch_data/test_2Dmodel_tanh_461.pth"
+trainedModel_path = "/home/tnoel/stage/solo-collisions/src/python/pytorch_data/test_2Dmodel_481.pth"
 
-trainedNet = Net([[4,6],[6,1]], activation=torch.tanh)
+trainedNet = Net([[4,8],[8,1]], activation=torch.tanh)
 trainedNet.load_state_dict(torch.load(trainedModel_path))
 # Set model to eval mode
 trainedNet.eval()
@@ -66,4 +66,4 @@ example_X = torch.from_numpy(X).float()
 
 
 # Use torch.jit.trace to generate a torch.jit.ScriptModule via tracing.
-traced_script_module = torch.jit.trace(trainedNet, example_X)
+#traced_script_module = torch.jit.trace(trainedNet, example_X)

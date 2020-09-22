@@ -437,7 +437,7 @@ if __name__ == "__main__":
     #q_ranges = [x_rot_range, y_rot_range, knee_rot_range]
     q_ranges = [x_rot_range, y_rot_range]
     #q_steps = [20,20,100]
-    q_steps = [200,200]
+    q_steps = [500,500]
 
     # Example of boundary estimation between 2 known configuration planes
     '''
@@ -457,20 +457,42 @@ if __name__ == "__main__":
     # Sample FCL distance
     #col_map = sampleRandomCollisionMap(ref_config, q_ind, q_ranges, 50000000, [0,1], rmodel, rdata, gmodel, gdata, computeDist=False)
     #col_map = sampleAroundBoundDistanceMap(ref_config, q_ind, q_ranges, 15000, bound, [0,1], rmodel, rdata, gmodel, gdata)
-    col_map = sampleGridCollisionMap(ref_config, q_ind, q_ranges, q_steps, [0,1], rmodel, rdata, gmodel, gdata, computeDist=False)
+    col3d_map = sampleGridCollisionMap(ref_config, q_ind, q_ranges, q_steps, [0,1], rmodel, rdata, gmodel, gdata, computeDist=True)
     
     #np.save("./npy_data/datasets/3d/ref_gridSampling_3dDist_{}x{}x{}samples.npy".format(q_steps[0],q_steps[1],q_steps[2]), col_map)
 
     # Convert spatial distance to articular distance
     # Compute jacobian as well
     dist_metric = 'euclidean'
-    col_map = spatialToArticular(col_map, bound, batch_size=100, metric=dist_metric)
+    col_map = spatialToArticular(col3d_map, bound, batch_size=100, metric=dist_metric)
 
     #np.save("./npy_data/datasets/3d/ref_gridSampling_articularDist_{}x{}x{}samples.npy".format(q_steps[0],q_steps[1],q_steps[2]), col_map)
     #J = getSampledJac(col_map, bound, batch_size=100, metric=dist_metric)
 
     # Plot the data
-    plot2DGridDistance(col_map, q_ind, q_ranges, q_steps)
+    #plot2DGridDistance(col_map, q_ind, q_ranges, q_steps)
+    grid_data = col_map[:,2].reshape(q_steps[1], q_steps[0])
+    grid3d_data = col3d_map[:,2].reshape(q_steps[1], q_steps[0])
+    
+    plt.figure()
+    plt.subplot(3,1,3)
+    plt.imshow(grid_data, extent=q_ranges[0]+q_ranges[1], cmap=plt.cm.RdYlGn, vmin=np.min(col_map[:,2]))
+    plt.xlabel("q[{}] - {} ticks".format(q_ind[0], q_steps[0]))
+    plt.ylabel("q[{}] - {} ticks".format(q_ind[1], q_steps[1]))
+    plt.title("3D distance")
+
+    plt.subplot(3,1,1)
+    plt.imshow(grid3d_data, extent=q_ranges[0]+q_ranges[1], cmap=plt.cm.RdYlGn, vmin=np.min(col3d_map[:,2]))
+    plt.xlabel("q[{}] - {} ticks".format(q_ind[0], q_steps[0]))
+    plt.ylabel("q[{}] - {} ticks".format(q_ind[1], q_steps[1]))
+    plt.title("Areticular distance")
+
+    plt.subplot(3,1,2)
+    plt.imshow(grid_data > 0, extent=q_ranges[0]+q_ranges[1])
+    plt.xlabel("q[{}] - {} ticks".format(q_ind[0], q_steps[0]))
+    plt.ylabel("q[{}] - {} ticks".format(q_ind[1], q_steps[1]))
+    plt.title("Binary collision map")
+
     #plot3Ddata(col_map, q_ind, q_ranges, q_steps) #, J=J)
     plt.show()
     

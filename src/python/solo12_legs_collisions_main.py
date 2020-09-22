@@ -142,4 +142,9 @@ robot.display(robot_config)
 for n in gv.getNodeList():
         if 'collision' in n and 'simple' not in n and len(n)>27:
                 gv.setVisibility(n,'ON')
+        if 'caps' in n and 'FL' in n:
+                gv.setVisibility(n, 'ON')
+                gv.setColor(n, [1,0.7,0.4,1])
+        if 'caps' in n and 'FL' not in n:
+                gv.setVisibility(n, 'OFF')
 gv.refresh()

@@ -30,23 +30,27 @@ int main(int argc, const char* argv[]) {
     inputs.push_back(-3.1415+2*3.1415*torch::rand({4}));
     // Execute the model and turn its output into a tensor.
     at::Tensor output = module.forward(inputs).toTensor();
-    at::Tensor jacobian = module.jacobian(inputs).toTensor();
+    //at::Tensor jacobian = module.jacobian(inputs).toTensor();
     std::cout << "Out : " << output << '\n';
     std::cout << "Jac : " << output << '\n';
 
 
     // Function evaluation with start and stop timestamps
     auto start_cg = high_resolution_clock::now();
+    
     for (int k = 0; k<1e3; k++)
     {
         // Create a vector of inputs.
-        inputs[0] =  (-3.1415+2*3.1415*torch::rand({4}));
+        inputs[0] = (-3.1415+2*3.1415*torch::rand({4}));
         // Execute the model and turn its output into a tensor.
         output = module.forward(inputs).toTensor();
-        jacobian = module.jacobian(inputs).toTensor();
+        //jacobian = module.jacobian(inputs).toTensor();
         //std::cout << output << '\n';
 
     }
+
+    
+
     auto stop_cg = high_resolution_clock::now(); 
     auto duration_cg = duration_cast<microseconds>(stop_cg - start_cg); 
 
