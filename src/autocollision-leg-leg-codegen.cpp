@@ -8,7 +8,7 @@
 using namespace std::chrono; 
 using namespace pinocchio;
 
-
+/*
 // Create a static list of the frames pairs for SOLO-12 collisions
 std::pair<int,int>* getSoloLegsFramesPairs(pinocchio::Model rmodel)
 {
@@ -46,45 +46,86 @@ std::pair<int,int>* getSoloLegsFramesPairs(pinocchio::Model rmodel)
                                           };
     return framesPairs;
 }
+*/
 
-
+// SOLO12
+/*
 // Create a static list of the geometries (capsules) pairs for SOLO-12 collisions
 std::pair<int,int>* getSoloLegsGeomPairs(pinocchio::GeometryModel gmodel)
 {
     // Frames pairs
     static std::pair<int,int> geomPairs[20] = {// FL - FR
-                                          getGeomPair("FL_UPPER_LEG_0","FR_UPPER_LEG_0", gmodel),
-                                          getGeomPair("FL_UPPER_LEG_0","FR_LOWER_LEG_0", gmodel),
-                                          getGeomPair("FL_LOWER_LEG_0","FR_UPPER_LEG_0", gmodel),
-                                          getGeomPair("FL_LOWER_LEG_0","FR_LOWER_LEG_0", gmodel),
-                                          // FL - HL
-                                          //getFramesPair("FL_UPPER_LEG","HL_UPPER_LEG", rmodel),
-                                          getGeomPair("FL_UPPER_LEG_0","HL_LOWER_LEG_0", gmodel),
-                                          getGeomPair("FL_LOWER_LEG_0","HL_UPPER_LEG_0", gmodel),
-                                          getGeomPair("FL_LOWER_LEG_0","HL_LOWER_LEG_0", gmodel),
-                                          // FL - HR
-                                          //getFramesPair("FL_UPPER_LEG","HR_UPPER_LEG", rmodel),
-                                          getGeomPair("FL_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
-                                          getGeomPair("FL_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
-                                          getGeomPair("FL_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel),
-                                          // FR - HL
-                                          //getFramesPair("FR_UPPER_LEG","HL_UPPER_LEG", rmodel),
-                                          getGeomPair("FR_UPPER_LEG_0","HL_LOWER_LEG_0", gmodel),
-                                          getGeomPair("FR_LOWER_LEG_0","HL_UPPER_LEG_0", gmodel),
-                                          getGeomPair("FR_LOWER_LEG_0","HL_LOWER_LEG_0", gmodel),
-                                          // FR - HR
-                                          //getFramesPair("FR_UPPER_LEG","HR_UPPER_LEG", rmodel),
-                                          getGeomPair("FR_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
-                                          getGeomPair("FR_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
-                                          getGeomPair("FR_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel),
-                                          // HL - HR
-                                          getGeomPair("HL_UPPER_LEG_0","HR_UPPER_LEG_0", gmodel),
-                                          getGeomPair("HL_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
-                                          getGeomPair("HL_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
-                                          getGeomPair("HL_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel)
-                                          };
+                                            getGeomPair("FL_UPPER_LEG_0","FR_UPPER_LEG_0", gmodel),
+                                            getGeomPair("FL_UPPER_LEG_0","FR_LOWER_LEG_0", gmodel),
+                                            getGeomPair("FL_LOWER_LEG_0","FR_UPPER_LEG_0", gmodel),
+                                            getGeomPair("FL_LOWER_LEG_0","FR_LOWER_LEG_0", gmodel),
+                                            // FL - HL
+                                            //getFramesPair("FL_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                            getGeomPair("FL_UPPER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                            getGeomPair("FL_LOWER_LEG_0","HL_UPPER_LEG_0", gmodel),
+                                            getGeomPair("FL_LOWER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                            // FL - HR
+                                            //getFramesPair("FL_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                            getGeomPair("FL_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            getGeomPair("FL_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                            getGeomPair("FL_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            // FR - HL
+                                            //getFramesPair("FR_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                            getGeomPair("FR_UPPER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                            getGeomPair("FR_LOWER_LEG_0","HL_UPPER_LEG_0", gmodel),
+                                            getGeomPair("FR_LOWER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                            // FR - HR
+                                            //getFramesPair("FR_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                            getGeomPair("FR_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            getGeomPair("FR_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                            getGeomPair("FR_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            // HL - HR
+                                            getGeomPair("HL_UPPER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                            getGeomPair("HL_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            getGeomPair("HL_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                            getGeomPair("HL_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel)
+                                            };
     return geomPairs;
 }
+*/
+// Create a static list of the geometries (capsules) pairs for SOLO-12 collisions
+std::pair<int,int>* getSoloLegsGeomPairs(pinocchio::GeometryModel gmodel)
+{
+    // Frames pairs
+    static std::pair<int,int> geomPairs[6] = {// FL - FR
+                                            //getGeomPair("FL_UPPER_LEG_0","FR_UPPER_LEG_0", gmodel),
+                                            //getGeomPair("FL_UPPER_LEG_0","FR_LOWER_LEG_0", gmodel),
+                                            //getGeomPair("FL_LOWER_LEG_0","FR_UPPER_LEG_0", gmodel),
+                                            //getGeomPair("FL_LOWER_LEG_0","FR_LOWER_LEG_0", gmodel),
+                                            // FL - HL
+                                            //getFramesPair("FL_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                            getGeomPair("FL_UPPER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                            getGeomPair("FL_LOWER_LEG_0","HL_UPPER_LEG_0", gmodel),
+                                            getGeomPair("FL_LOWER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                            // FL - HR
+                                            //getFramesPair("FL_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                            //getGeomPair("FL_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            //getGeomPair("FL_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                            //getGeomPair("FL_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            // FR - HL
+                                            //getFramesPair("FR_UPPER_LEG","HL_UPPER_LEG", rmodel),
+                                            //getGeomPair("FR_UPPER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                            //getGeomPair("FR_LOWER_LEG_0","HL_UPPER_LEG_0", gmodel),
+                                            //getGeomPair("FR_LOWER_LEG_0","HL_LOWER_LEG_0", gmodel),
+                                            // FR - HR
+                                            //getFramesPair("FR_UPPER_LEG","HR_UPPER_LEG", rmodel),
+                                            getGeomPair("FR_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            getGeomPair("FR_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                            getGeomPair("FR_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            // HL - HR
+                                            //getGeomPair("HL_UPPER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                            //getGeomPair("HL_UPPER_LEG_0","HR_LOWER_LEG_0", gmodel),
+                                            //getGeomPair("HL_LOWER_LEG_0","HR_UPPER_LEG_0", gmodel),
+                                            //getGeomPair("HL_LOWER_LEG_0","HR_LOWER_LEG_0", gmodel)
+                                            };
+    return geomPairs;
+}
+
 
 // MAIN
 int main(int argc, char *argv[])
@@ -120,7 +161,8 @@ int main(int argc, char *argv[])
         // Simplified model
         // The capsules geometries needed for the coe generation are contained in the simplified 
         // URDF file provided here ! It does not work with the original meshes-described URDF
-    const std::string urdf_filename = "/home/tnoel/stage/solo-collisions/urdf/solo12_simplified.urdf";
+    //const std::string urdf_filename = "/home/tnoel/stage/solo-collisions/urdf/solo12_simplified.urdf";
+    const std::string urdf_filename = "/home/tnoel/stage/solo-collisions/urdf/solo8_simplified.urdf";
     const std::string robots_model_path = "/opt/openrobots/share/example-robot-data/robots";
 
         // Load and build the Model and GeometryModel from URDF 
@@ -134,7 +176,7 @@ int main(int argc, char *argv[])
 
     // Predefine frames and capsules pairs (nb of pairs evaluated chosen in tapeADFun)
         // Predefined frames pairs
-    std::pair<int,int>* framesPairs = getSoloLegsFramesPairs(rmodel);
+    //std::pair<int,int>* framesPairs = getSoloLegsFramesPairs(rmodel);
         // Predefined geometries pairs
     std::pair<int,int>* geomPairs = getSoloLegsGeomPairs(gmodel);
 
@@ -142,7 +184,8 @@ int main(int argc, char *argv[])
     *                               Code generation
     ***************************************************************************/
     // Tape the model to generate
-    ADFun genFun = tapeADCapsulesCollisionComputation(rmodel, gmodel, framesPairs, geomPairs, nb_pairs);
+    //ADFun genFun = tapeADCapsulesCollisionComputation(rmodel, gmodel, framesPairs, geomPairs, nb_pairs);
+    ADFun genFun = tapeADCapsulesCollisionComputation(rmodel, gmodel, geomPairs, nb_pairs);
     generateCompileCLib("solo_autocollision_legs_legs", genFun);
 
     /***************************************************************************
@@ -156,18 +199,22 @@ int main(int argc, char *argv[])
 
     // Input : Get a random config.
     Eigen::Matrix<double, Eigen::Dynamic, 1> X_test;
-    X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+    //X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+    X_test = 3.1415*Eigen::Matrix<double,8,1>::Random(8,1);
     //X_test = Eigen::Matrix<double,12,1>::Zero(12,1);
     
     // Output : distance
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;
-    Y_test.resize(20*(1+3*12));
+    //Y_test.resize(20*(1+3*12));
+    //Y_test.resize(20*(1+12));
+    Y_test.resize(6*(1+8));
     
     // Function evaluation with start and stop timestamps
     auto start_cg = high_resolution_clock::now();
     for (int k = 0; k<1e6; k++)
     {
-        X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+        //X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+        X_test = 3.1415*Eigen::Matrix<double,8,1>::Random(8,1);
         model->ForwardZero(X_test, Y_test);
     }
     auto stop_cg = high_resolution_clock::now(); 
@@ -190,8 +237,12 @@ int main(int argc, char *argv[])
     for(int k = 0; k<nb_pairs; k++)
     {
         std::cout << "Pair " << k << std::endl; 
-        std::cout << "Dist : \n" << Y_test(k*37,0) << "\n" << std::endl; 
-        std::cout << "Jacobian : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 3, 12> >(Y_test.block(1+k*37, 0, 36, 1).data()) << "\n" << std::endl; 
+        //std::cout << "Dist : \n" << Y_test(k*37,0) << "\n" << std::endl; 
+        //std::cout << "Jacobian : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 3, 12> >(Y_test.block(1+k*37, 0, 36, 1).data()) << "\n" << std::endl; 
+        //std::cout << "Dist : \n" << Y_test(k*13,0) << "\n" << std::endl; 
+        std::cout << "Dist : \n" << Y_test(k*9,0) << "\n" << std::endl; 
+        //std::cout << "Jacobian : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 1, 12> >(Y_test.block(1+k*13, 0, 12, 1).data()) << "\n" << std::endl;
+        std::cout << "Jacobian : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 1, 8> >(Y_test.block(1+k*9, 0, 8, 1).data()) << "\n" << std::endl;
         std::cout << sep << std::endl; 
     }
 
