@@ -10,6 +10,7 @@ from quadprog import solve_qp
 
 from solo12_collision_gradient import computeDistJacobian, computeDistJacobianFiniteDiff
 from solo_shoulder_approx_torch_nn import *
+from legs_cpp_wrapper import *
 
 ##### INITIALIZATION METHODS
 # Copied from example robot data, remove free flyer base 
@@ -35,7 +36,6 @@ def loadSolo(solo=True):
     
     urdf_path = "/home/tnoel/stage/solo-collisions/urdf/"
     mesh_dir = "/opt/openrobots/share/example-robot-data/robots/solo_description"
-    #mesh_dir = "/home/tnoel/stage/solo-collisions/urdf/"
 
     if solo:
         urdf_file = "solo8_simplified.urdf"
@@ -108,12 +108,6 @@ def initSolo(solo=True):
     gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_upper_leg_geom))
     gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_lower_leg_geom))
 
-    '''
-    for i in range(8):
-        for j in range(i+1,8):
-            if not (j == i+1):
-                gmodel.addCollisionPair(pio.CollisionPair(legs_collGeoms[i], legs_collGeoms[j]))
-    '''
     gdata = gmodel.createData()
     return robot, rmodel, rdata, gmodel, gdata
 
@@ -144,11 +138,8 @@ def neuralNetShoulderResult(trainedNet, q_shoulder, offset):
     dist_pred = trainedNet(X_shoulder).item() - offset
 
     J_pred = trainedNet.jacobian(X_shoulder)
-    #print(J_pred)
     J_pred = torch.mm(J_pred.view(1,-1),torch.from_numpy(inputJacobian(X_shoulder.view(-1,1), dim)).float())
-    print(J_pred)
 
-    print("PyTorch : {}".format(dist_pred + offset))
     return dist_pred, J_pred.numpy()    
 
 
@@ -176,7 +167,6 @@ def compute_legs_Jdist_avoidance(q, rmodel, rdata, gmodel, gdata):
         frame1 = gmodel.geometryObjects[gmodel.collisionPairs[counter].first].parentFrame
         frame2 = gmodel.geometryObjects[gmodel.collisionPairs[counter].second].parentFrame
 
-        #if collDist < dref:
         #Jlocal_dist = computeDistJacobianFiniteDiff(rmodel, rdata, q, frame1, frame2, p1, p2, floatingBase=False)
         Jlocal_dist = computeDistJacobian(rmodel, rdata, q, frame1, frame2, p1, p2, floatingBase=False)
 
@@ -222,7 +212,7 @@ def compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, 
     for k in range(4):
         Jlocal_dist = np.zeros(len(q))
         collDist, jac = evalModel(q_ind[k], shoulders_q[k], 0.08, shoulder_sym=shoulder_syms[k])
-        #if collDist < dref:
+
         Jlocal_dist[q_ind[k]] = np.array(jac)
         Jdist.append(Jlocal_dist)
         dist_vec.append(collDist)
@@ -230,7 +220,7 @@ def compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, 
         pairs.append(k)
     return dist_vec, Jdist, pairs
 
-
+# DEPRECATED
 def compute_tau_avoidance(aq, M, b, Jdist, dist_vec, kdist, kv):
     # Solve min_aq .5 aqHaq - gaq s.t. Caq <= d
     d = kdist*dist_vec + kv*Jdist@aq
@@ -244,6 +234,37 @@ def compute_tau_avoidance(aq, M, b, Jdist, dist_vec, kdist, kv):
 
     return tau_q_coll
     
+
+# Method used in main controller
+def compute_coll_avoidance_torque(q, vq, clib, dist_thresh=0.1, kp=0, kv=0, nb_motors=8, tot_pairs=6, active_pairs=[]):    
+    # Compute collisions distances and jacobians from the C lib. 
+    c_results = getLegsCollisionsResults(q, clib, nb_motors, tot_pairs)
+    c_dist_legs = getLegsDistances(c_results, nb_motors, tot_pairs)
+    c_Jlegs = getLegsJacobians(c_results, nb_motors, tot_pairs)
+    
+    if(len(active_pairs)==0):
+        active_pairs = [i for i in range(len(c_dist_legs))]
+
+    tau_avoid = computeRepulsiveTorque(q, vq, c_dist_legs, c_J_legs, dist_thresh, kp, kv)
+    
+    return tau_avoid
+
+def computeRepulsiveTorque(q, vq, collDistances, collJacobians, dist_thresh=0.1, kp=0, kv=0):
+    # Initialize repulsive torque
+    tau_avoid = np.zeros(len(q))
+
+    # Loop through the distance to check for threshold violation
+    for i in range(len(collDistances)):
+        J = collJacobians[i]
+        d = collDistances[i]
+
+        tau_rep = np.zeros(len(q))
+        # If violation, compute viscoelastic repulsive torque along the collision jacobian
+        if(d < dist_thresh):
+            tau_rep = -kp*(d - dist_thresh) - kv*J@vq
+        tau_avoid += tau_rep*J.T
+    
+    return tau_avoid
 
 def compute_tau_PD(q, q_des, vq, Kp, Kv, q_ind=[]):
     if len(q_ind) == 0 :

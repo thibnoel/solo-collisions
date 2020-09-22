@@ -43,11 +43,11 @@ def loadBulletPhysicsClient(dt, enableGUI=True, grav=-9.81):
     physicsClient.setAdditionalSearchPath("/opt/openrobots/share/example-robot-data/robots/solo_description")
     physicsClient.setAdditionalSearchPath("/home/tnoel/stage/solo-collisions/urdf")
 
-    #robotID = physicsClient.loadURDF("solo12_simplified_bullet.urdf", robotStartPos, robotStartOrientation, useFixedBase=1)
-    robotID = physicsClient.loadURDF("solo8_simplified_bullet.urdf", robotStartPos, robotStartOrientation, useFixedBase=1)
+    robotID = physicsClient.loadURDF("solo12_simplified_bullet.urdf", robotStartPos, robotStartOrientation, useFixedBase=1)
+    #robotID = physicsClient.loadURDF("solo8_simplified_bullet.urdf", robotStartPos, robotStartOrientation, useFixedBase=1)
     # Initialize velocity control 
-    #revoluteJointIndices = [0,1,2,4,5,6,8,9,10,12,13,14]
-    revoluteJointIndices = [0,1,3,4,6,7,9,10]
+    revoluteJointIndices = [0,1,2,4,5,6,8,9,10,12,13,14]
+    #revoluteJointIndices = [0,1,3,4,6,7,9,10]
     
     physicsClient.setJointMotorControlArray(robotID,
                                             jointIndices = revoluteJointIndices,
@@ -67,9 +67,9 @@ def loadBulletPhysicsClient(dt, enableGUI=True, grav=-9.81):
 enableGUI = True
 dt = 1e-3
 grav = -9.81
-robotID, revoluteJointIndices, physicsClient = loadBulletPhysicsClient(dt, enableGUI=False)
+robotID, revoluteJointIndices, physicsClient = loadBulletPhysicsClient(dt, enableGUI=True)
 
-robot, rmodel, rdata, gmodel, gdata = initSolo(solo=True)
+robot, rmodel, rdata, gmodel, gdata = initSolo(solo=False)
 aq0 = np.zeros(robot.model.nv)
 
 trainedModel_path = "/home/tnoel/stage/solo-collisions/src/python/pytorch_data/test_2Dmodel_481.pth"
@@ -78,16 +78,17 @@ shoulder_model = loadTrainedNeuralNet(trainedModel_path)
 q_list = []
 tau_q_list = []
 dist_list = []
+min_dist = 10*np.ones(6)
 
 
 # Gen code binding test
-#so_file = "/home/tnoel/stage/solo-collisions/libcoll_mod.so"
-#nn_so_file = "/home/tnoel/stage/solo-collisions/libcoll_nn.so"
-#cCollFun = CDLL(so_file)
-#nnCCollFun = CDLL(nn_so_file)
-
-so_file = "/home/tnoel/stage/solo-collisions/libcoll_legs8.so"
+so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_mod.so"
+nn_so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_nn.so"
 cCollFun = CDLL(so_file)
+nnCCollFun = CDLL(nn_so_file)
+
+#so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_legs8.so"
+#cCollFun = CDLL(so_file)
 
 print(physicsClient.getNumJoints(robotID))
 for k in range(300):    
@@ -97,34 +98,18 @@ for k in range(300):
 
     # Get robot current state
     q, vq = getPosVelJoints(robotID, revoluteJointIndices, physicsClient)
+
+    # Zero torque
+    tau_q = np.zeros(robot.model.nq)
     
     # compute dynamic drift -- Coriolis, centrifugal, gravity
     b = pio.rnea(robot.model, robot.data, q, vq, aq0)
     # compute mass matrix M
     M = pio.crba(robot.model, robot.data, q)
-    
-    # Zero torque
-    tau_q = np.zeros(robot.model.nq)
-    # PD torque    
-    q_des = robot.q0.copy()
-    q_des[0] += 2*np.sin(0.01*k)
-    q_des[3] += 0.5
-    Kp = 20
-    Kv = 0.4
-    tau_q_PD = compute_tau_PD(q, q_des, vq, Kp, Kv)#, q_ind=q_ind)
-    # Friction torque
-    Kf = 0.002
-    tau_q_f = -Kf * vq
-    # Zero acceleration torque
-    k_fixed = 100
-    tau_fixed = -k_fixed*M@vq + b
-    
+
     # Initialize dist log
-    #dist = 5*np.zeros(len(gmodel.collisionPairs) + 4)
-    dist = np.zeros(6)
-    '''
-    # Compute reference acceleration
-    ref_aq = computeAcceleration(M, b, tau_q_f)
+    dist = 5*np.zeros(len(gmodel.collisionPairs) + 4)
+    #dist = np.zeros(6)
 
     ##################### SOLO 12
     # Get results for the legs from FCL
@@ -133,48 +118,27 @@ for k in range(300):
     shoulders_dist, Jshd, shoulders_pairs = compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, gdata, characLength=0.34)
 
     ### Get results from C generated code
-    c_results = getLegsCollisionsResults(q, cCollFun)
-    c_dist_legs = getDistances(c_results)
-    c_Jlegs = getJacobians(c_results)
-
-    c_shoulder_FL = getShoulderCollisionsResults(q[0:2], nnCCollFun)
-
-    c_FLsh_dist = getDistance(c_shoulder_FL)
-    c_JFLsh = getJacobian(c_shoulder_FL)
-    print("C : {}".format(c_FLsh_dist))
-    print(c_JFLsh)
+    c_results = getLegsCollisionsResults(q, cCollFun, 12,20)
+    c_dist_legs = getLegsDistances(c_results,12,20)
+    c_Jlegs = getLegsJacobians(c_results,12,20)
+    # Currently only 1 shoulder from gen. code 
+    c_shoulder_FL = getShoulderCollisionsResults(q[0:2], nnCCollFun, 2)
+    c_FLsh_dist = getShoulderDistance(c_shoulder_FL)
+    c_JFLsh = getShoulderJacobian(c_shoulder_FL)
 
     legs_dist = c_dist_legs
     Jlegs = c_Jlegs
-
-    # Safety distance 
-    #safety_dist = 0.1
-    #legs_dist = legs_dist - safety_dist
-
-    #kdist = 1000
-    #kv = 50
-
-    #tau_q += tau_q_PD
     
-    Jdist = np.vstack((Jlegs, Jshd))
-    dist_vec = np.concatenate((legs_dist, shoulders_dist))
-    
-    thresh = 0.05
-    kp = 25
-    kv = 0.08
-    #for i in range(len(dist_vec)):
-    for i in range(len(dist_vec)):
-        J = Jdist[i]
-        d = dist_vec[i]
+    thresh_legs = 0.05
+    kp_legs = 25
+    kv_legs = 0.08
 
-        tau_rep = np.zeros(12)
-        if(d < thresh):
-            tau_rep = -kp*(d - thresh) - kv*J@vq
-            tau_rep *= np.exp(thresh/(5*k*(d-thresh)))
-        #if(d < thresh/5):
-        #    tau_rep = -5*kp*(d - thresh) - 5*kv*J@vq
-        tau_q += tau_rep*J.T
+    thresh_shd = 0.3
+    kp_shd = 50
+    kv_shd = 0.1
 
+    tau_q += computeRepulsiveTorque(q, vq, c_dist_legs, c_Jlegs, thresh_legs, kp_legs, kv_legs)
+    tau_q += computeRepulsiveTorque(q, vq, shoulders_dist, Jshd, thresh_shd, kp_shd, kv_shd)
     
     for i in range(len(legs_pairs)):
         for j in range(len(gmodel.collisionPairs)):
@@ -187,41 +151,34 @@ for k in range(300):
                 dist[len(gmodel.collisionPairs) + j] = shoulders_dist[i]
     '''
     ##################### SOLO 8
+    nb_motors = 8
+    nb_pairs = 6
     ### Get results from C generated code
+    # Independent call to feed the logs
+    #c_results = getLegsCollisionsResults8(q, cCollFun)
+    c_results = getLegsCollisionsResults(q, cCollFun, nb_motors, nb_pairs)
+    c_dist_legs = getLegsDistances(c_results, nb_motors, nb_pairs)
+    c_Jlegs = getLegsJacobians(c_results, nb_motors, nb_pairs)
+
+    # Controller parameters
+    thresh = 0.1
+    kp = 10
+    kv = 0
+
+    # Compute torque and measure elapsed time
     start = timer()
-    c_results = getLegsCollisionsResults8(q, cCollFun)
-    c_dist_legs = getDistances8(c_results)
-    c_Jlegs = getJacobians8(c_results)
-    
-
-    #print(c_dist_legs)
-    legs_dist = c_dist_legs
-    Jdist = c_Jlegs
-
-
-    thresh = 0.12
-    kp = 50
-    kv = 0.5
-    #for i in range(len(dist_vec)):
-    for i in range(len(legs_dist)):
-        J = Jdist[i]
-        d = legs_dist[i]
-
-        tau_rep = np.zeros(8)
-        if(d < thresh):
-            tau_rep = -kp*(d - thresh)**2/(thresh*thresh) - kv*J@vq
-            #tau_rep *= np.exp(thresh/(5*k*(d-thresh)))
-        #if(d < thresh/5):
-        #    tau_rep = -5*kp*(d - thresh) - 5*kv*J@vq
-        tau_q += tau_rep*J.T
-
-    for i in range(len(legs_dist)):
-        #for j in range(len(gmodel.collisionPairs)):
-        #    if(legs_pairs[i] == gmodel.collisionPairs[j]):
-        dist[i] = legs_dist[i]
-
+    tau_rep = compute_coll_avoidance_torque(q, vq, cCollFun, dist_thresh=thresh, kp=kp, kv=kv, nb_motors=8, active_pairs=[])
     end = timer()
-    print(end - start)
+    #print(end - start)
+    
+    # Log pairs distances
+    for i in range(len(c_dist_legs)):
+        dist[i] = c_dist_legs[i]
+        if(min_dist[i] > c_dist_legs[i]):
+            min_dist[i] = c_dist_legs[i]
+        
+    '''
+    #tau_q += tau_rep
 
     # COMPUTE PYBULLET CONTROL
     #tau_q += tau_q_f
@@ -232,24 +189,25 @@ for k in range(300):
     dist_list.append(dist)
 
     # External force 
+    '''
     if k == 99:
         physicsClient.applyExternalForce(robotID,4,[-500,0,0],[0,0,0], pb.LINK_FRAME)
         physicsClient.applyExternalForce(robotID,10,[500,0,0],[0,0,0], pb.LINK_FRAME)
-
+    '''
     physicsClient.setJointMotorControlArray(robotID,
                                         jointIndices = revoluteJointIndices,
                                         controlMode = pb.TORQUE_CONTROL,
                                         forces = tau_q)
-
-    #print(q)
 
 
 q_list = np.array(q_list)
 tau_q_list = np.array(tau_q_list)
 dist_list = np.array(dist_list)
 
+print(min_dist)
+
 plt.figure()
-plt.suptitle("kp = {}, kv = {}, threshold = {}".format(kp, kv, thresh))
+#plt.suptitle("kp = {}, kv = {}, threshold = {}".format(kp, kv, thresh))
 
 plt.subplot(1,3,1)
 for k in range(q_list.shape[1]):
@@ -275,7 +233,8 @@ for k in range(dist_list.shape[1]):
     #plt.plot(dist_list[:,k], label="d[{}]".format(k))
 
 plt.vlines(0,0,len(dist_list)+1, linestyles='solid', colors='black')
-plt.vlines(thresh,0,len(dist_list)+1, linestyles='dashed', colors='green')
+plt.vlines(thresh_legs,0,len(dist_list)+1, linestyles='dashed', colors='green')
+plt.vlines(thresh_shd,0,len(dist_list)+1, linestyles='dashed', colors='blue')
 #plt.vlines(d_ref_shoulders,0,len(dist_list)+1, linestyles='dashed', colors='green')
 plt.legend()
 plt.title("Pairs dist")

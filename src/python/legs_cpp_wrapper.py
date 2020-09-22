@@ -1,44 +1,28 @@
 from ctypes import *
 import numpy as np
 
-def getLegsCollisionsResults12(q, cdll_func):
-    DoubleArray12 = c_double*12
-    DoubleArray260 = c_double*260
-    
-    y = np.zeros(20*13).tolist()
 
-    q = DoubleArray12(*q)
-    y = DoubleArray260(*y)
-    cdll_func.solo_autocollision_legs_legs_forward_zero(q,y)
+# Init C types and store function call in a vector y of dim (nb_motors + 1)*nb_pairs
+def getLegsCollisionsResults(q, cdll_func, nb_motors, nb_pairs):
+    ny = (nb_motors+1)*nb_pairs
 
-    return y
+    DoubleArrayIn = c_double*nb_motors
+    DoubleArrayOut = c_double*ny
 
+    y = np.zeros(ny).tolist()
 
-def getDistances12(collResults):
-    return np.array([collResults[i*13] for i in range(20)])
-
-
-def getJacobians12(collResults):
-    return np.vstack([collResults[i*13 + 1 : (i+1)*13] for i in range(20)])
-
-
-
-def getLegsCollisionsResults8(q, cdll_func):
-    DoubleArray8 = c_double*8
-    DoubleArray54 = c_double*54
-    
-    y = np.zeros(6*9).tolist()
-
-    q = DoubleArray8(*q)
-    y = DoubleArray54(*y)
-    cdll_func.solo_autocollision_legs_legs_forward_zero(q,y)
+    q = DoubleArrayIn(*q)
+    y = DoubleArrayOut(*y)
+    cdll_func.solo_autocollision_legs_legs_forward_zero(q, y)
 
     return y
 
 
-def getDistances8(collResults):
-    return np.array([collResults[i*9] for i in range(6)])
+# Extract distances from results vector
+def getLegsDistances(legsCollResults, nb_motors, nb_pairs):
+    return np.array([legsCollResults[i*(1+nb_motors)] for i in range(nb_pairs)])
 
 
-def getJacobians8(collResults):
-    return np.vstack([collResults[i*9 + 1 : (i+1)*9] for i in range(6)])
+# Extract jacobians from results vector
+def getLegsJacobians(legsCollResults, nb_motors, nb_pairs):
+    return np.vstack([legsCollResults[i*(1+nb_motors) + 1 : (i+1)*(1+nb_motors)] for i in range(nb_pairs)])

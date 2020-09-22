@@ -1,23 +1,25 @@
 from ctypes import *
 import numpy as np
 
-def getShoulderCollisionsResults(q, cdll_func):
-    DoubleArray4 = c_double*4
-    DoubleArray3 = c_double*3
+
+# Init C types and store function call in a vector y of dim q_dim+1
+def getShoulderCollisionsResults(q, cdll_func, q_dim):
+    DoubleArrayIn = c_double*(2*q_dim)
+    DoubleArrayOut = c_double*(1 + q_dim)
+
+    x = np.concatenate((np.cos(q), np.sin(q))).tolist()
+    y = np.zeros(1 + q_dim).tolist()
     
-    x = [np.cos(q[0]), np.cos(q[1]), np.sin(q[0]), np.sin(q[1])]
-    y = np.zeros(3).tolist()
-    
-    x = DoubleArray4(*x)
-    y = DoubleArray3(*y)
+    x = DoubleArrayIn(*x)
+    y = DoubleArrayOut(*y)
     cdll_func.solo_autocollision_nn_shoulder_forward_zero(x,y)
 
     return y
 
 
-def getDistance(collResult):
-    return np.array(collResult[0])
+def getShoulderDistance(shoulderCollResult):
+    return np.array(shoulderCollResult[0])
 
 
-def getJacobian(collResult):
-    return np.array(collResult[1:])
+def getShoulderJacobian(shoulderCollResult):
+    return np.array(shoulderCollResult[1:])
