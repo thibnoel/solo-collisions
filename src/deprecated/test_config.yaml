@@ -1,0 +1,15 @@
+# Autocollision code generation
+# Configuration for SOLO
+- pair0 : 
+  collGeom1 : 
+    - frame : 'FL_UPPER_LEG'
+  collGeom2 : 
+    - frame : 'FR_UPPER_LEG'
+    - geom : 'capsule'
+
+pair1:
+  - collGeom1 : 
+    - frame1 : 'FL_LOWER_LEG'
+  - collGeom2 :
+    - frame2 : 'FR_LOWER_LEG'
+ 
