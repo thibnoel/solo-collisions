@@ -6,9 +6,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from solo_shoulder_extended_collision_sampling import *
+from collision_sampling.solo_shoulder_extended_collision_sampling import *
 #from collision_approx_fourier import thresholdFilter, evalApproxGradFFT
-from solo_shoulder_approx_common import *
+from shoulder_approx.solo_shoulder_approx_common import *
 
 def customActivation(x):
     #return x*torch.tanh(x)

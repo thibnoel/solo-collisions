@@ -23,7 +23,7 @@ def test2Dnet(trainedNet, q_ind, q_ranges, q_steps, test_data):
 
     # Conversion to articular distance
     dist_metric='euclidean'
-    test_data = spatialToArticular(col_map_test,bound, metric=dist_metric)
+    test_data = spatialToArticular(col_map_test, bound, metric=dist_metric)
 
     pred = buildPred(trainedNet, test_data, dim=len(q_ind))
 

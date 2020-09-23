@@ -9,8 +9,8 @@ import time
 from quadprog import solve_qp
 
 from solo12_collision_gradient import computeDistJacobian, computeDistJacobianFiniteDiff
-from solo_shoulder_approx_torch_nn import *
-from legs_cpp_wrapper import *
+from shoulder_approx.solo_shoulder_approx_torch_nn import *
+from solo_collisions_avoidance_control.solo_c_wrappers import *
 
 ##### INITIALIZATION METHODS
 # Copied from example robot data, remove free flyer base 
@@ -220,35 +220,8 @@ def compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, 
         pairs.append(k)
     return dist_vec, Jdist, pairs
 
-# DEPRECATED
-def compute_tau_avoidance(aq, M, b, Jdist, dist_vec, kdist, kv):
-    # Solve min_aq .5 aqHaq - gaq s.t. Caq <= d
-    d = kdist*dist_vec + kv*Jdist@aq
-    C = -Jdist.T
-    g = np.zeros(len(aq))
-    aq_sol, _, _, _, _, _ = solve_qp(M, g, C, -d)
 
-    aq_sol = aq_sol + aq
-    
-    tau_q_coll = M@aq_sol + b
-
-    return tau_q_coll
-    
-
-# Method used in main controller
-def compute_coll_avoidance_torque(q, vq, clib, dist_thresh=0.1, kp=0, kv=0, nb_motors=8, tot_pairs=6, active_pairs=[]):    
-    # Compute collisions distances and jacobians from the C lib. 
-    c_results = getLegsCollisionsResults(q, clib, nb_motors, tot_pairs)
-    c_dist_legs = getLegsDistances(c_results, nb_motors, tot_pairs)
-    c_Jlegs = getLegsJacobians(c_results, nb_motors, tot_pairs)
-    
-    if(len(active_pairs)==0):
-        active_pairs = [i for i in range(len(c_dist_legs))]
-
-    tau_avoid = computeRepulsiveTorque(q, vq, c_dist_legs, c_J_legs, dist_thresh, kp, kv)
-    
-    return tau_avoid
-
+# Compute a viscoelastic repulsive torque for a list of collisions results (distances + jacobians)
 def computeRepulsiveTorque(q, vq, collDistances, collJacobians, dist_thresh=0.1, kp=0, kv=0):
     # Initialize repulsive torque
     tau_avoid = np.zeros(len(q))
@@ -266,7 +239,7 @@ def computeRepulsiveTorque(q, vq, collDistances, collJacobians, dist_thresh=0.1,
     
     return tau_avoid
 
-def compute_tau_PD(q, q_des, vq, Kp, Kv, q_ind=[]):
+def computePDTorque(q, q_des, vq, Kp, Kv, q_ind=[]):
     if len(q_ind) == 0 :
         q_ind = [i for i in range(len(q))]
     tau_q = np.zeros(len(q))

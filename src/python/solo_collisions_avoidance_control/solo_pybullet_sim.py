@@ -10,10 +10,9 @@ import pybullet_data
 import pybullet_utils.bullet_client as bc
 
 from solo12_collision_gradient import computeDistJacobian
-from solo_shoulder_approx_torch_nn import *
-from solo_control import *
-from legs_cpp_wrapper import *
-from shoulders_cpp_wrapper import *
+from shoulder_approx.solo_shoulder_approx_torch_nn import *
+from solo_collisions_avoidance_control.solo_control import *
+from solo_collisions_avoidance_control.solo_c_wrappers import *
 
 
 def getPosVelJoints(robotID, revoluteJointIndices, physicsClient):
@@ -43,11 +42,11 @@ def loadBulletPhysicsClient(dt, enableGUI=True, grav=-9.81):
     physicsClient.setAdditionalSearchPath("/opt/openrobots/share/example-robot-data/robots/solo_description")
     physicsClient.setAdditionalSearchPath("/home/tnoel/stage/solo-collisions/urdf")
 
-    robotID = physicsClient.loadURDF("solo12_simplified_bullet.urdf", robotStartPos, robotStartOrientation, useFixedBase=1)
-    #robotID = physicsClient.loadURDF("solo8_simplified_bullet.urdf", robotStartPos, robotStartOrientation, useFixedBase=1)
+    #robotID = physicsClient.loadURDF("solo12_simplified_bullet.urdf", robotStartPos, robotStartOrientation, useFixedBase=1)
+    robotID = physicsClient.loadURDF("solo8_simplified_bullet.urdf", robotStartPos, robotStartOrientation, useFixedBase=1)
     # Initialize velocity control 
-    revoluteJointIndices = [0,1,2,4,5,6,8,9,10,12,13,14]
-    #revoluteJointIndices = [0,1,3,4,6,7,9,10]
+    #revoluteJointIndices = [0,1,2,4,5,6,8,9,10,12,13,14]
+    revoluteJointIndices = [0,1,3,4,6,7,9,10]
     
     physicsClient.setJointMotorControlArray(robotID,
                                             jointIndices = revoluteJointIndices,
@@ -69,10 +68,11 @@ dt = 1e-3
 grav = -9.81
 robotID, revoluteJointIndices, physicsClient = loadBulletPhysicsClient(dt, enableGUI=True)
 
-robot, rmodel, rdata, gmodel, gdata = initSolo(solo=False)
+robot, rmodel, rdata, gmodel, gdata = initSolo(solo=True)
 aq0 = np.zeros(robot.model.nv)
 
-trainedModel_path = "/home/tnoel/stage/solo-collisions/src/python/pytorch_data/test_2Dmodel_481.pth"
+#trainedModel_path = "/home/tnoel/stage/solo-collisions/src/python/pytorch_data/test_2Dmodel_481.pth"
+trainedModel_path = "/home/tnoel/npy_data/pytorch_data/test_2Dmodel_481.pth"
 shoulder_model = loadTrainedNeuralNet(trainedModel_path)
 
 q_list = []
@@ -82,13 +82,13 @@ min_dist = 10*np.ones(6)
 
 
 # Gen code binding test
-so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_mod.so"
-nn_so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_nn.so"
-cCollFun = CDLL(so_file)
-nnCCollFun = CDLL(nn_so_file)
-
-#so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_legs8.so"
+#so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_mod.so"
+#nn_so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_nn.so"
 #cCollFun = CDLL(so_file)
+#nnCCollFun = CDLL(nn_so_file)
+
+so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_legs8.so"
+cCollFun = CDLL(so_file)
 
 print(physicsClient.getNumJoints(robotID))
 for k in range(300):    
@@ -110,7 +110,7 @@ for k in range(300):
     # Initialize dist log
     dist = 5*np.zeros(len(gmodel.collisionPairs) + 4)
     #dist = np.zeros(6)
-
+    '''
     ##################### SOLO 12
     # Get results for the legs from FCL
     legs_dist, Jlegs, legs_pairs = compute_legs_Jdist_avoidance(q, rmodel, rdata, gmodel, gdata)
@@ -161,13 +161,13 @@ for k in range(300):
     c_Jlegs = getLegsJacobians(c_results, nb_motors, nb_pairs)
 
     # Controller parameters
-    thresh = 0.1
-    kp = 10
-    kv = 0
+    thresh_legs = 0.05
+    kp_legs = 10
+    kv_legs = 0.02
 
     # Compute torque and measure elapsed time
     start = timer()
-    tau_rep = compute_coll_avoidance_torque(q, vq, cCollFun, dist_thresh=thresh, kp=kp, kv=kv, nb_motors=8, active_pairs=[])
+    tau_q += computeRepulsiveTorque(q, vq, c_dist_legs, c_Jlegs, thresh_legs, kp_legs, kv_legs)
     end = timer()
     #print(end - start)
     
@@ -177,7 +177,7 @@ for k in range(300):
         if(min_dist[i] > c_dist_legs[i]):
             min_dist[i] = c_dist_legs[i]
         
-    '''
+    
     #tau_q += tau_rep
 
     # COMPUTE PYBULLET CONTROL
@@ -234,7 +234,7 @@ for k in range(dist_list.shape[1]):
 
 plt.vlines(0,0,len(dist_list)+1, linestyles='solid', colors='black')
 plt.vlines(thresh_legs,0,len(dist_list)+1, linestyles='dashed', colors='green')
-plt.vlines(thresh_shd,0,len(dist_list)+1, linestyles='dashed', colors='blue')
+#plt.vlines(thresh_shd,0,len(dist_list)+1, linestyles='dashed', colors='blue')
 #plt.vlines(d_ref_shoulders,0,len(dist_list)+1, linestyles='dashed', colors='green')
 plt.legend()
 plt.title("Pairs dist")
