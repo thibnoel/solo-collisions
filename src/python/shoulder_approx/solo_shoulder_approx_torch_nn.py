@@ -68,19 +68,6 @@ class Net(nn.Module):
         return num_features
 
 
-def buildData(distance2D):
-    n,m = distance2D.shape
-    X = []
-    Y = []
-    maxD = np.max(dist_field)
-    for i in range(n):
-        for j in range(m):
-            #X.append([np.cos(2*np.pi*i/n),np.cos(2*np.pi*j/m),np.sin(2*np.pi*i/n),np.sin(2*np.pi*j/m)])
-            #Y.append(distance2D[i,j])
-            X.append([np.cos(2*np.pi*i/n),np.cos(2*np.pi*j/m),np.sin(2*np.pi*i/n),np.sin(2*np.pi*j/m), distance2D[i,j]])
-    return np.array(X)#,np.array(Y)/maxD
-
-
 def preprocessData(dist_samples):
     data = dist_samples.copy()
     dim = dist_samples.shape[1] - 1
@@ -88,8 +75,6 @@ def preprocessData(dist_samples):
     for k in range(dim):
         X[:,k] = np.cos(data[:,k])
         X[:,dim+k] = np.sin(data[:,k])
-    #X[:,2] = np.sin(data[:,0])
-    #X[:,3] = np.sin(data[:,1])
 
     Y = data[:,dim]
 
@@ -98,15 +83,6 @@ def preprocessData(dist_samples):
 
     return X, Y
 
-
-def inputJac(x,y):
-    J = np.array([-np.sin(x),0,0,-np.sin(y), np.cos(x),0,0,np.cos(y)])
-    return J.reshape(4,2)
-
-
-def inputJac4(x):
-    J = np.array([-x[2],0,0,-x[3],x[0],0,0,x[1]])
-    return J.reshape(4,2)
 
 def inputJacobian(x, dim):
     J = np.zeros((dim*2, dim))
@@ -117,6 +93,7 @@ def inputJacobian(x, dim):
     J[dim:,:] = J_bottom
     
     return J
+
 
 def buildGridPred(reg, distance2D):
     n,m = distance2D.shape
@@ -259,66 +236,6 @@ def randomNetwork(nb_hidden_range, size_hidden_range, activations):
     return net, act_ind
 
 
-def comparedTraining(n_networks):
-    res = 100
-
-    activations = [customActivation, torch.sigmoid, F.softsign, torch.tanh]
-    activations_names=['custom','sigmoid','softsign','tanh']
-    hidden_layers_range = [2,5]
-    hidden_layers_size = [4,21]
-
-    robot, rmodel, rdata, gmodel, gdata = initSolo()
-    ref_config = np.zeros(robot.q0.shape)
-
-    x_rot_range = [-np.pi, np.pi]
-    y_rot_range = [-np.pi, np.pi]
-    knee_rot_range = [-np.pi, np.pi]
-
-    q_ind = [7,8]
-    q_ranges = [x_rot_range, y_rot_range]
-    q_steps = [400,400]
-
-    bound2d = np.load("./npy_data/2d_bound_ref_5000samp.npy", allow_pickle=True)
-    #bound3d = np.load("./npy_data/3d_bound_ref_200x200.npy", allow_pickle=True)
-    bound = bound2d
-
-    col_map_train = sampleRandomCollisionMap(ref_config, q_ind, q_ranges, 50000, [0,1], rmodel, rdata, gmodel, gdata, computeDist=False)
-    col_map_test = sampleGridCollisionMap(ref_config, q_ind, q_ranges, q_steps, [0,1], rmodel, rdata, gmodel, gdata, computeDist=False)
-
-    dist_metric='euclidean'
-    data = spatialToArticular(col_map_train, bound, metric=dist_metric)
-    test_data = spatialToArticular(col_map_test,bound, metric=dist_metric)
-
-    bound_data = np.zeros((bound.shape[0], bound.shape[1]+1))
-    bound_data[:,:bound.shape[1]] = bound
-
-    dist_field = test_data
-
-    X, Y = preprocessData(data)
-    X_bound, Y_bound = preprocessData(bound_data)
-
-    X = torch.cat((X,X_bound))
-    Y = torch.cat((Y,Y_bound))
-
-    criterionF = nn.MSELoss(reduction='sum')
-
-    print("\n")
-    for k in range(n_networks):
-        net, activation = randomNetwork(hidden_layers_range, hidden_layers_size, activations)
-        optimizer = optim.Adam(net.parameters(), lr=0.005)
-        net = trainNet(net, X, Y, 50, 500, optimizer, criterionF, verbose=False)
-        pred = buildPred(net, dist_field, dim=2)
-        bin_pred_offset = binaryPredOptimOffset(dist_field, pred, optimRate=1e-3)
-        bin_diff = binaryDiffMap(dist_field, pred, offset=bin_pred_offset)
-        lost_space = np.count_nonzero(bin_diff[:,-1] != 0)
-        print("RANDOM NETWORK {}".format(k+1))
-        print("Architecture : " + net.param_string())
-        print("Activation : " + activations_names[activation])
-        print("Loss on grid pred : {:.2f}".format(criterionF(torch.from_numpy(pred), torch.from_numpy(dist_field))))
-        print("Lost range of motion : {:.2f}% (with pred. offset d > {:.3f} )".format(100*lost_space/np.count_nonzero(dist_field > 0), bin_pred_offset))
-        print('#'*50)
-
-
 if __name__ == "__main__":
     #comparedTraining(10)
 
@@ -446,7 +363,7 @@ if __name__ == "__main__":
     #ani.save("test.gif",writer=writer)
     #plt.show()
 
-    save=True
+    save=False
     savepath = "./pytorch_data/test_2Dmodel_tanh_481.pth"
     if(save):
         torch.save(net.state_dict(), savepath)
