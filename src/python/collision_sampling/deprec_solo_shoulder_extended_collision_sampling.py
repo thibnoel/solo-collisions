@@ -437,7 +437,7 @@ if __name__ == "__main__":
     #q_ranges = [x_rot_range, y_rot_range, knee_rot_range]
     q_ranges = [x_rot_range, y_rot_range]
     #q_steps = [20,20,100]
-    q_steps = [500,500]
+    q_steps = [50,50]
 
     # Example of boundary estimation between 2 known configuration planes
     '''
@@ -451,13 +451,14 @@ if __name__ == "__main__":
     '''
     # Load an existing sampled boundary
     #bound3d = np.load("./npy_data/3d_bound_ref_200x200.npy", allow_pickle=True)
-    bound2d = np.load("./npy_data/2d_bound_ref_5000samp.npy", allow_pickle=True)
+    #bound2d = np.load("./npy_data/2d_bound_ref_5000samp.npy", allow_pickle=True)
+    bound2d = np.load("/home/tnoel/npy_data/npy_data/npy_data/2d_bound_ref_5000samp.npy", allow_pickle=True)
     bound = bound2d
 
     # Sample FCL distance
     #col_map = sampleRandomCollisionMap(ref_config, q_ind, q_ranges, 50000000, [0,1], rmodel, rdata, gmodel, gdata, computeDist=False)
     #col_map = sampleAroundBoundDistanceMap(ref_config, q_ind, q_ranges, 15000, bound, [0,1], rmodel, rdata, gmodel, gdata)
-    col3d_map = sampleGridCollisionMap(ref_config, q_ind, q_ranges, q_steps, [0,1], rmodel, rdata, gmodel, gdata, computeDist=True)
+    col3d_map = sampleGridCollisionMap(ref_config, q_ind, q_ranges, q_steps, [0,1], rmodel, rdata, gmodel, gdata, computeDist=False)
     
     #np.save("./npy_data/datasets/3d/ref_gridSampling_3dDist_{}x{}x{}samples.npy".format(q_steps[0],q_steps[1],q_steps[2]), col_map)
 
@@ -485,7 +486,7 @@ if __name__ == "__main__":
     plt.imshow(grid3d_data, extent=q_ranges[0]+q_ranges[1], cmap=plt.cm.RdYlGn, vmin=np.min(col3d_map[:,2]))
     plt.xlabel("q[{}] - {} ticks".format(q_ind[0], q_steps[0]))
     plt.ylabel("q[{}] - {} ticks".format(q_ind[1], q_steps[1]))
-    plt.title("Areticular distance")
+    plt.title("Articular distance")
 
     plt.subplot(3,1,2)
     plt.imshow(grid_data > 0, extent=q_ranges[0]+q_ranges[1])
