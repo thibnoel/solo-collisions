@@ -45,9 +45,39 @@ def getShoulderCollisionsResults(q, cdll_func, q_dim):
 
 
 # Extract distance from results vector
-def getShoulderDistance(shoulderCollResult):
-    return np.array(shoulderCollResult[0])
+def getShoulderDistance(shoulderCollResult, offset=0):
+    return np.array(shoulderCollResult[0]) - offset
+
 
 # Extract jacobian from results vector
 def getShoulderJacobian(shoulderCollResult):
     return np.array(shoulderCollResult[1:])
+
+
+def getAllShouldersCollisionsResults(q, cdll_func, q_dim=2, offset=0):
+    distances = []
+    jacobians = []
+    shoulder_syms = [[1,1], [-1,1], [1,-1], [-1,-1]]
+
+    for shoulder_ind in range(4):
+        q_ind = [k for k in range(3*shoulder_ind,3*shoulder_ind + q_dim)]
+        q_val = q[q_ind]
+        sym = shoulder_syms[shoulder_ind]
+
+        sym_q_val = np.array(q_val.copy())
+        sym_q_val[0] = sym[0]*sym_q_val[0]
+        sym_q_val[1] = sym[1]*sym_q_val[1]
+
+        shoulder_result = getShoulderCollisionsResults(sym_q_val, cdll_func, q_dim)
+        
+        J = np.array(getShoulderJacobian(shoulder_result))
+        J[0] = sym[0]*J[0]
+        J[1] = sym[1]*J[1]
+
+        formatted_J = np.zeros(len(q))
+        formatted_J[q_ind] = J
+        
+        distances.append(getShoulderDistance(shoulder_result, offset=offset))
+        jacobians.append(formatted_J)
+
+    return np.array(distances), np.vstack(jacobians)

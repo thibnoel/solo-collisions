@@ -8,13 +8,13 @@ from mpl_toolkits.mplot3d import Axes3D
 import time
 from quadprog import solve_qp
 
-from solo12_collision_gradient import computeDistJacobian, computeDistJacobianFiniteDiff
-from shoulder_approx.solo_shoulder_approx_torch_nn import *
-from solo_collisions_avoidance_control.solo_c_wrappers import *
+#from solo12_collision_gradient import computeDistJacobian, computeDistJacobianFiniteDiff
+#from collision_approx.collision_approx_pytorch import *
+
 
 ##### INITIALIZATION METHODS
 # Copied from example robot data, remove free flyer base 
-def loadSolo(solo=True):
+def loadSimplifiedSolo(solo=True):
     if solo:
         URDF_FILENAME = "solo.urdf"
     else:
@@ -32,7 +32,7 @@ def loadSolo(solo=True):
     # Add the free-flyer joint limits
     #addFreeFlyerJointLimits(robot.model)
     """
-    # SIMPLIFIED
+    # SIMPLIFIED URDF (capsules collisions)
     
     urdf_path = "/home/tnoel/stage/solo-collisions/urdf/"
     mesh_dir = "/opt/openrobots/share/example-robot-data/robots/solo_description"
@@ -51,7 +51,7 @@ def loadSolo(solo=True):
 
 # Initialize SOLO model
 def initSolo(solo=True):
-    robot = loadSolo(solo=solo)
+    robot = loadSimplifiedSolo(solo=solo)
     # Get robot model, data, and collision model
     rmodel = robot.model
     rdata  = rmodel.createData()
@@ -110,142 +110,3 @@ def initSolo(solo=True):
 
     gdata = gmodel.createData()
     return robot, rmodel, rdata, gmodel, gdata
-
-##### NEURAL NETWORK RELATED METHODS
-def loadTrainedNeuralNet(trainedModel_path):
-    # Load trained model
-    trainedNet = Net([[4,8],[8,1]], activation=torch.tanh)
-    trainedNet.load_state_dict(torch.load(trainedModel_path))
-    # Set model to eval mode
-    trainedNet.eval()
-    return trainedNet
-
-
-def qToTorchInput(q):
-    dim = len(q)
-    X = np.zeros(2*dim)
-    for k in range(dim):
-        X[k] = np.cos(q[k])
-        X[dim+k] = np.sin(q[k])
-    X = torch.from_numpy(X).float()
-    return X
-
-
-def neuralNetShoulderResult(trainedNet, q_shoulder, offset):
-    dim = len(q_shoulder)
-    X_shoulder = qToTorchInput(q_shoulder)
-    #dist = trainedNet(X_shoulder).data
-    dist_pred = trainedNet(X_shoulder).item() - offset
-
-    J_pred = trainedNet.jacobian(X_shoulder)
-    J_pred = torch.mm(J_pred.view(1,-1),torch.from_numpy(inputJacobian(X_shoulder.view(-1,1), dim)).float())
-
-    return dist_pred, J_pred.numpy()    
-
-
-##### OTHER METHODS
-def getCollisionResults(q, rmodel, rdata, gmodel, gdata):
-    pio.computeDistances(rmodel,rdata,gmodel,gdata, q)
-    collisions_dist = gdata.distanceResults
-    return collisions_dist
-
-
-def compute_legs_Jdist_avoidance(q, rmodel, rdata, gmodel, gdata):
-    counter = 0
-    collisions_result = getCollisionResults(q, rmodel, rdata, gmodel, gdata)
-    Jdist = []
-    dist_vec = []
-    pairs = []
-
-    q_des_coll = np.zeros(len(q))
-    
-    while(counter<len(collisions_result)):
-        collDist = collisions_result[counter].min_distance
-        p1 = collisions_result[counter].getNearestPoint1()
-        p2 = collisions_result[counter].getNearestPoint2()
-
-        frame1 = gmodel.geometryObjects[gmodel.collisionPairs[counter].first].parentFrame
-        frame2 = gmodel.geometryObjects[gmodel.collisionPairs[counter].second].parentFrame
-
-        #Jlocal_dist = computeDistJacobianFiniteDiff(rmodel, rdata, q, frame1, frame2, p1, p2, floatingBase=False)
-        Jlocal_dist = computeDistJacobian(rmodel, rdata, q, frame1, frame2, p1, p2, floatingBase=False)
-
-        dist_vec.append(collDist)
-        Jdist.append(Jlocal_dist)
-        
-        pairs.append(gmodel.collisionPairs[counter])
-            
-        counter += 1
-    return dist_vec, Jdist, pairs
-
-
-def compute_shoulders_Jdist_avoidance(q, shoulder_model, rmodel, rdata, gmodel, gdata, characLength=0.16):
-    Jdist = []
-    dist_vec = []
-    pairs = []
-    
-    FL_ind = [0,1]
-    FR_ind = [3,4]
-    HL_ind = [6,7]
-    HR_ind = [9,10]
-    q_FL_shoulder = q[FL_ind].copy()
-    q_FR_shoulder = q[FR_ind].copy()
-    q_HL_shoulder = q[HL_ind].copy()
-    q_HR_shoulder = q[HR_ind].copy()
-
-    def evalModel(shoulder_ind, shoulder_q, pred_offset, shoulder_sym=[1,1]):
-        shoulder_q[0] = shoulder_sym[0]*shoulder_q[0]
-        shoulder_q[1] = shoulder_sym[1]*shoulder_q[1]
-
-        collDist, jac = neuralNetShoulderResult(shoulder_model, shoulder_q, pred_offset)
-        collDist = characLength*collDist
-        jac = jac[0]
-        jac[0] = shoulder_sym[0]*jac[0]
-        jac[1] = shoulder_sym[1]*jac[1]
-
-        return collDist, jac
-
-    shoulder_syms = [[1,1], [-1,1], [1,-1], [-1,-1]]
-    q_ind = [FL_ind, FR_ind, HL_ind, HR_ind]
-    shoulders_q = [q_FL_shoulder, q_FR_shoulder, q_HL_shoulder, q_HR_shoulder]
-    
-    for k in range(4):
-        Jlocal_dist = np.zeros(len(q))
-        collDist, jac = evalModel(q_ind[k], shoulders_q[k], 0.08, shoulder_sym=shoulder_syms[k])
-
-        Jlocal_dist[q_ind[k]] = np.array(jac)
-        Jdist.append(Jlocal_dist)
-        dist_vec.append(collDist)
-
-        pairs.append(k)
-    return dist_vec, Jdist, pairs
-
-
-# Compute a viscoelastic repulsive torque for a list of collisions results (distances + jacobians)
-def computeRepulsiveTorque(q, vq, collDistances, collJacobians, dist_thresh=0.1, kp=0, kv=0):
-    # Initialize repulsive torque
-    tau_avoid = np.zeros(len(q))
-
-    # Loop through the distance to check for threshold violation
-    for i in range(len(collDistances)):
-        J = collJacobians[i]
-        d = collDistances[i]
-
-        tau_rep = np.zeros(len(q))
-        # If violation, compute viscoelastic repulsive torque along the collision jacobian
-        if(d < dist_thresh):
-            tau_rep = -kp*(d - dist_thresh) - kv*J@vq
-        tau_avoid += tau_rep*J.T
-    
-    return tau_avoid
-
-def computePDTorque(q, q_des, vq, Kp, Kv, q_ind=[]):
-    if len(q_ind) == 0 :
-        q_ind = [i for i in range(len(q))]
-    tau_q = np.zeros(len(q))
-    tau_q[q_ind] = -Kp*(q[q_ind] - q_des[q_ind]) - Kv*vq[q_ind]
-    return tau_q
-
-
-def computeAcceleration(M, b, tau):
-    return np.linalg.inv(M)@(tau - b) 
