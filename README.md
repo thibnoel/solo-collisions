@@ -1,20 +1,10 @@
-# Solo Collisions
+# SOLO autocollisions avoidance
+This repository contains the methods required to characterize and approximate the collisions distances and jacobians for the relevant pairs of the SOLO8 and SOLO12. A procedure for C source code generation that returns the same collision data is also provided. Finally, we use this data in a collisions avoidance controller using virtual repulsive torques.
 
-## Leg to leg collision detection
-Approach for the legs : approximate them as capsules, and generate a quicker, C version of some pinocchio functions to check the distance between legs segments.
-### Try it
+It relies on the Pinocchio and HPP-FCL open-source C++ libraries, developed at LAAS-CNRS, and other standard Python or C++ packages. 
 
-```
-mkdir build
-cd build
-cmake ..
-make
-./src/main_codegen
-```
-**Expected output** : 
-The main currently generates source code for 2 functions : the relative placement of 2 frames in a given configuration; and the minimal distance between 2 given segments. More precisely, the outputs are as follows :
-- console : the generated C source code is printed to the console for both functions
-- libraries : the generated code is compiled and 2 libraries are created on the fly, under `build/libCGssd.so` and `build/libCGrel_placement.so`
+## Leg to leg collision
+The case of a collision involving a pair of legs segments is handled with a standard, forward kinematics-based approach. The relative placement of the segments frames can be obtained with Pinocchio; the legs meshes are then approximatd by capsules primitives, for which the distance computation boils down to a  3D segment-to-segment distance. This distance is easy to reimplement and is then used as part of the code generation.
 
-## Base to upper leg collision detection 
-Approach for the shoulder : first, map the collision space of the shoulder in terms of shoulder rotations at high angular resolutions with FCL using mesh colliders, then derive a low-computation model/approximation that can be embarked.
+## Leg to body collision
+For the collisions with the body, the previous approach is not so relevant (fixed spatial distance at the shoulder). We thus  take a different route, and start by sampling the collision obstacle for the relevant pairs in the robot configurations space. This sampling allows us to determin the collision obstacle boundary in articular space. A new definition for the distance, defined with respect to this boundary, then provides a better distance field in articular space. This distance field must then be approximated as a quickly-evaluated model. Our method does this using a standard MLP neural network.
