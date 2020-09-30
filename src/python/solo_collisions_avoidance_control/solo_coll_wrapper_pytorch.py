@@ -1,15 +1,6 @@
 from collision_approx.collision_approx_pytorch import *
 
 
-def loadTrainedNeuralNet(trainedModel_path):
-    # Load trained model
-    trainedNet = Net([[4,8],[8,1]], activation=torch.tanh)
-    trainedNet.load_state_dict(torch.load(trainedModel_path))
-    # Set model to eval mode
-    trainedNet.eval()
-    return trainedNet
-
-
 def qToTorchInput(q):
     dim = len(q)
     X = np.zeros(2*dim)
