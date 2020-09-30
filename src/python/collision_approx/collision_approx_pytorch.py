@@ -26,6 +26,16 @@ class Net(nn.Module):
             if param.requires_grad:
                 print(name, param.data)
 
+    
+    def getParamsValues(self):
+        params_list = []
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                #print(name, param.data)
+                list_elt = [name, param.data]
+                params_list.append(list_elt)
+        return params_list
+
     def forward(self, x):
         #x = x.view(-1, self.num_flat_features(x))
         for k in range(len(self.layers) - 1):
@@ -110,6 +120,15 @@ def trainNet(net, X, Y, nb_epochs, batch_size, optimizer, loss_criterion, verbos
                     (epoch + 1, k + 1, running_loss))
                 running_loss = 0.0
     return net
+
+
+def loadTrainedNeuralNet(trainedModel_path, architecture, activation=torch.tanh):
+    # Load trained model
+    trainedNet = Net(architecture, activation=activation)
+    trainedNet.load_state_dict(torch.load(trainedModel_path))
+    # Set model to eval mode
+    trainedNet.eval()
+    return trainedNet
 
 
 def evalNetOnConfig(net, q, eval_jac=False):
