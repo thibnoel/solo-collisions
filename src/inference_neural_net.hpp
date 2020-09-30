@@ -121,16 +121,16 @@ class InferenceNeuralNetwork
 };
 
 //ADFun tapeADNeuralNetInference(InferenceNeuralNetwork<ADScalar> nn)
-ADFun tapeADNeuralNetInference(InferenceNeuralNetwork<ADScalar> nn)
+ADFun tapeADNeuralNetInference(InferenceNeuralNetwork<ADScalar> nn, const int q_input_size)
 {
     // Initnialize AD input and output
     Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
     Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
     // Input size = nb_DoF * 2
-    ad_X.resize(4);
+    ad_X.resize(2*q_input_size);
     //ad_X << (ADScalar)0, (ADScalar)0, (ADScalar)0, (ADScalar)0;
     // Output size = 1 + input size/2 (dist + jac)
-    ad_Y.resize(3);
+    ad_Y.resize(1+2*q_input_size);
     CppAD::Independent(ad_X);
     // Initialize AD function
     ADFun ad_fun;   
@@ -139,7 +139,8 @@ ADFun tapeADNeuralNetInference(InferenceNeuralNetwork<ADScalar> nn)
     Eigen::Matrix<ADScalar, Eigen::Dynamic, Eigen::Dynamic> jac_net = nn.outInGradient(ad_X);
     Eigen::Matrix<ADScalar, Eigen::Dynamic, Eigen::Dynamic> jac_inq = nn.inQGradient(ad_X);
 
-    ad_Y.block<2,1>(1,0) = (jac_net*jac_inq).transpose();
+    //ad_Y.block<2,1>(1,0) = (jac_net*jac_inq).transpose();
+    ad_Y.block(1,0, q_input_size, 1) = (jac_net*jac_inq).transpose();
 
     ad_fun.Dependent(ad_X, ad_Y);
 

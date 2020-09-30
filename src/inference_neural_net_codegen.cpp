@@ -52,7 +52,7 @@ int main()
 
     std::cout << "Jac_prod :\n" << grad*grad_in << std::endl;
 
-    ADFun genFun = tapeADNeuralNetInference(nn);
+    ADFun genFun = tapeADNeuralNetInference(nn, 2);
     generateCompileCLib("solo_autocollision_nn_shoulder", genFun);
 
 
