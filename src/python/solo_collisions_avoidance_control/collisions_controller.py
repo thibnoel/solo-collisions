@@ -19,11 +19,13 @@ def computeRepulsiveTorque(q, vq, collDistances, collJacobians, dist_thresh=0.1,
     return tau_avoid
 
 
+def computeEmergencyTorque(vq, kv):
+    return -kv*vq
+
+
 # Compute a condition to switch to the emergency behavior
 # How to deal with v ? 
-def emergencyCondition(collDistances, vq, tau_q, d_thresh, v_thresh, tau_thresh):
-    if(np.max(collDistances) < d_thresh
-      #or np.max(np.abs(vq)) > v_thresh
-      or np.max(np.abs(tau_q)) > tau_thresh):
+def emergencyCondition(collDistances, vq, tau_q, d_thresh, tau_thresh):
+    if(np.min(collDistances) < d_thresh or np.max(np.abs(tau_q)) > tau_thresh):
         return True
     return False

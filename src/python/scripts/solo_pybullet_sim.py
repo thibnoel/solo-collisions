@@ -87,13 +87,16 @@ robotID, revoluteJointIndices, physicsClient = loadBulletPhysicsClient(dt, enabl
 robot, rmodel, rdata, gmodel, gdata = initSolo(solo=False)
 aq0 = np.zeros(robot.model.nv)
 
+# Using directly PyTorch model from python
 #trainedModel_path = "/home/tnoel/stage/solo-collisions/src/python/pytorch_data/test_2Dmodel_481.pth"
 trainedModel_path = "/home/tnoel/npy_data/pytorch_data/test_2Dmodel_481.pth"
-shoulder_model = loadTrainedNeuralNet(trainedModel_path)
+trained_model_arch = [[4,8],[8,1]]
+shoulder_model = loadTrainedNeuralNet(trainedModel_path, trained_model_arch)
 
 q_list = []
 tau_q_list = []
 dist_list = []
+emTrigger_list = []
 min_dist = 10*np.ones(6)
 
 
@@ -106,6 +109,8 @@ nnCCollFun = CDLL(nn_so_file)
 #so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_legs8.so"
 #cCollFun = CDLL(so_file)
 avg_exec_time = 0
+
+emergencyFlag = False
 
 print(physicsClient.getNumJoints(robotID))
 for k in range(300):    
@@ -143,12 +148,12 @@ for k in range(300):
     c_shd_dist, c_shd_jac = getAllShouldersCollisionsResults(q, nnCCollFun, 2, offset=0.08)
     end = timer()
     avg_exec_time += end-start
-    print("Avg exec time : {:.6f}\r".format(avg_exec_time/(k+1)))
+    #print("Avg exec time : {:.6f}\r".format(avg_exec_time/(k+1)))
 
     
     thresh_legs = 0.05
-    kp_legs = 25
-    kv_legs = 0.08
+    kp_legs = 150
+    kv_legs = 0.2
 
     thresh_shd = 0.3
     kp_shd = 50
@@ -156,6 +161,14 @@ for k in range(300):
 
     tau_q += computeRepulsiveTorque(q, vq, c_dist_legs, c_Jlegs, thresh_legs, kp_legs, kv_legs)
     tau_q += computeRepulsiveTorque(q, vq, c_shd_dist, c_shd_jac, thresh_shd, kp_shd, kv_shd)
+
+    emTrigger = emergencyCondition(c_dist_legs, vq, tau_q, thresh_legs/10, 50)
+    emergencyFlag = emergencyFlag or emTrigger
+
+    if(emergencyFlag):
+        tau_q = computeEmergencyTorque(vq, kv_legs)
+    
+    emTrigger_list.append(emTrigger)
     
     for i in range(len(legs_pairs)):
         for j in range(len(gmodel.collisionPairs)):
@@ -208,11 +221,11 @@ for k in range(300):
     dist_list.append(dist)
 
     # External force 
-    '''
+    
     if k == 99:
-        physicsClient.applyExternalForce(robotID,4,[-500,0,0],[0,0,0], pb.LINK_FRAME)
+        physicsClient.applyExternalForce(robotID,3,[-500,0,0],[0,0,0], pb.LINK_FRAME)
         physicsClient.applyExternalForce(robotID,10,[500,0,0],[0,0,0], pb.LINK_FRAME)
-    '''
+    
     physicsClient.setJointMotorControlArray(robotID,
                                         jointIndices = revoluteJointIndices,
                                         controlMode = pb.TORQUE_CONTROL,
@@ -222,6 +235,7 @@ for k in range(300):
 q_list = np.array(q_list)
 tau_q_list = np.array(tau_q_list)
 dist_list = np.array(dist_list)
+emTrigger_list = np.array(emTrigger_list)
 
 print(min_dist)
 
@@ -257,5 +271,8 @@ plt.vlines(thresh_legs,0,len(dist_list)+1, linestyles='dashed', colors='green')
 #plt.vlines(d_ref_shoulders,0,len(dist_list)+1, linestyles='dashed', colors='green')
 plt.legend()
 plt.title("Pairs dist")
+
+plt.figure()
+plt.plot(emTrigger_list)
 
 plt.show()
