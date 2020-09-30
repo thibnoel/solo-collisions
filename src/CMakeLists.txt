@@ -5,9 +5,9 @@ ADD_EXECUTABLE(solo-autocollision-leg-leg-codegen autocollision-leg-leg-codegen.
 TARGET_INCLUDE_DIRECTORIES(solo-autocollision-leg-leg-codegen  PRIVATE SYSTEM ${EIGEN3_INCLUDE_DIR})
 TARGET_LINK_LIBRARIES(solo-autocollision-leg-leg-codegen pinocchio::pinocchio ${CMAKE_DL_LIBS})
 
-ADD_EXECUTABLE(autocollision-shoulders-main autocollision-shoulders-main.cpp)
-TARGET_INCLUDE_DIRECTORIES(autocollision-shoulders-main PRIVATE SYSTEM ${EIGEN3_INCLUDE_DIR})
-TARGET_LINK_LIBRARIES(autocollision-shoulders-main pinocchio::pinocchio ${CMAKE_DL_LIBS})
+#ADD_EXECUTABLE(autocollision-shoulders-main autocollision-shoulders-main.cpp)
+#TARGET_INCLUDE_DIRECTORIES(autocollision-shoulders-main PRIVATE SYSTEM ${EIGEN3_INCLUDE_DIR})
+#TARGET_LINK_LIBRARIES(autocollision-shoulders-main pinocchio::pinocchio ${CMAKE_DL_LIBS})
 
 ADD_EXECUTABLE(inference-nn-main inference_neural_net_codegen.cpp)
 TARGET_INCLUDE_DIRECTORIES(inference-nn-main PRIVATE SYSTEM ${EIGEN3_INCLUDE_DIR})
