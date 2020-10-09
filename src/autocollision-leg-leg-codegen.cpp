@@ -49,7 +49,7 @@ std::pair<int,int>* getSoloLegsFramesPairs(pinocchio::Model rmodel)
 */
 
 // SOLO12
-/*
+
 // Create a static list of the geometries (capsules) pairs for SOLO-12 collisions
 std::pair<int,int>* getSoloLegsGeomPairs(pinocchio::GeometryModel gmodel)
 {
@@ -87,7 +87,8 @@ std::pair<int,int>* getSoloLegsGeomPairs(pinocchio::GeometryModel gmodel)
                                             };
     return geomPairs;
 }
-*/
+
+/*
 // Create a static list of the geometries (capsules) pairs for SOLO-12 collisions
 std::pair<int,int>* getSoloLegsGeomPairs(pinocchio::GeometryModel gmodel)
 {
@@ -125,7 +126,7 @@ std::pair<int,int>* getSoloLegsGeomPairs(pinocchio::GeometryModel gmodel)
                                             };
     return geomPairs;
 }
-
+*/
 
 // MAIN
 int main(int argc, char *argv[])
@@ -161,8 +162,8 @@ int main(int argc, char *argv[])
         // Simplified model
         // The capsules geometries needed for the coe generation are contained in the simplified 
         // URDF file provided here ! It does not work with the original meshes-described URDF
-    //const std::string urdf_filename = "/home/tnoel/stage/solo-collisions/urdf/solo12_simplified.urdf";
-    const std::string urdf_filename = "/home/tnoel/stage/solo-collisions/urdf/solo8_simplified.urdf";
+    const std::string urdf_filename = "/home/tnoel/stage/solo-collisions/urdf/solo12_simplified.urdf";
+    //const std::string urdf_filename = "/home/tnoel/stage/solo-collisions/urdf/solo8_simplified.urdf";
     const std::string robots_model_path = "/opt/openrobots/share/example-robot-data/robots";
 
         // Load and build the Model and GeometryModel from URDF 
@@ -199,22 +200,22 @@ int main(int argc, char *argv[])
 
     // Input : Get a random config.
     Eigen::Matrix<double, Eigen::Dynamic, 1> X_test;
-    //X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
-    X_test = 3.1415*Eigen::Matrix<double,8,1>::Random(8,1);
+    X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+    //X_test = 3.1415*Eigen::Matrix<double,8,1>::Random(8,1);
     //X_test = Eigen::Matrix<double,12,1>::Zero(12,1);
     
     // Output : distance
     Eigen::Matrix<double, Eigen::Dynamic, 1> Y_test;
     //Y_test.resize(20*(1+3*12));
-    //Y_test.resize(20*(1+12));
-    Y_test.resize(6*(1+8));
+    Y_test.resize(20*(1+12+6));
+    //Y_test.resize(6*(1+8+6));
     
     // Function evaluation with start and stop timestamps
     auto start_cg = high_resolution_clock::now();
     for (int k = 0; k<1e6; k++)
     {
-        //X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
-        X_test = 3.1415*Eigen::Matrix<double,8,1>::Random(8,1);
+        X_test = 3.1415*Eigen::Matrix<double,12,1>::Random(12,1);
+        //X_test = 3.1415*Eigen::Matrix<double,8,1>::Random(8,1);
         model->ForwardZero(X_test, Y_test);
     }
     auto stop_cg = high_resolution_clock::now(); 
@@ -240,9 +241,12 @@ int main(int argc, char *argv[])
         //std::cout << "Dist : \n" << Y_test(k*37,0) << "\n" << std::endl; 
         //std::cout << "Jacobian : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 3, 12> >(Y_test.block(1+k*37, 0, 36, 1).data()) << "\n" << std::endl; 
         //std::cout << "Dist : \n" << Y_test(k*13,0) << "\n" << std::endl; 
-        std::cout << "Dist : \n" << Y_test(k*9,0) << "\n" << std::endl; 
+        std::cout << "Dist : \n" << Y_test(k*19,0) << "\n" << std::endl; 
         //std::cout << "Jacobian : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 1, 12> >(Y_test.block(1+k*13, 0, 12, 1).data()) << "\n" << std::endl;
-        std::cout << "Jacobian : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 1, 8> >(Y_test.block(1+k*9, 0, 8, 1).data()) << "\n" << std::endl;
+        std::cout << "Jacobian : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 1, 8> >(Y_test.block(1+k*19, 0, 12, 1).data()) << "\n" << std::endl;
+        std::cout << "Witness point 1 : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 1, 3> >(Y_test.block(1+k*19+12, 0, 3, 1).data()) << "\n" << std::endl;
+        std::cout << "Witness point 2 : \n" << Eigen::Map<const Eigen::Matrix<Scalar, 1, 3> >(Y_test.block(1+k*19+12+3, 0, 3, 1).data()) << "\n" << std::endl;
+
         std::cout << sep << std::endl; 
     }
 
