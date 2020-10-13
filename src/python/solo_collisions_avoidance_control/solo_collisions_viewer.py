@@ -24,9 +24,6 @@ def initViewer(robot_wrapper, init_config, coll=True):
     return gv
 
 
-def addWPCylinder(viewer, name, geom, radius, height, local_pos):
-    viewer.addCylinder(name, height, radius, (1,0,0,1))
-
 def visualizeCollisionDist(gv, p1, p2, name, color, init=False):
     ### --- display witness as normal patch tangent to capsule
     if(init):
@@ -64,6 +61,28 @@ def visualizePair(gv, rmodel, rdata, q, caps_frames, local_wpoints, color, world
 
     #print(p0,p1)
     visualizeCollisionDist(gv, np.array(p0), np.array(p1), caps_frames[0] + '_' + caps_frames[1], color, init=init)
+
+
+def visualizeCollisions(gv, rmodel, rdata, q, caps_frames_list, legs_dist_list, wpoints_list, viz_thresh, activation_thresh, init=False):
+    for i in range(len(caps_frames_list)):
+        color = [0,0,0,0]
+        if(legs_dist_list[i]) < viz_thresh:
+            color = [0,1,0,1] if legs_dist_list[i] > activation_thresh else [1,0,0,1]
+        visualizePair(gv, rmodel, rdata, q, caps_frames_list[i], wpoints_list[i], color, world_frame=False, init=init)
+
+
+def visualizeTorques(gv, rmodel, rdata, tau_q, init=False):
+    for k in range(len(tau_q)):
+        jointFrame = rdata.oMi[k]
+        name = 'world/pinocchio/collisions/torque_' + str(k)
+        color = [0,0,1,1]
+        dir = 1 if tau_q[k]>0 else -1
+        orientation = pio.SE3(pio.Quaternion.FromTwoVectors(np.matrix([1,0,0]).T,np.matrix([0,dir,0]).T).matrix(),jointFrame.translation)
+
+        if(init):
+            gv.addArrow(name, 0.003, 1, color)
+        gv.resizeArrow(name, 0.003, np.abs(tau_q[k]))
+        gv.applyConfiguration(name, pio.SE3ToXYZQUATtuple(orientation))
 
 
 '''

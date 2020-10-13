@@ -77,36 +77,69 @@ def initSolo(solo=True):
                  HR_upper_leg_geom, 
                  HR_lower_leg_geom]
 
-    # Add the collision pairs to the geometric model
-    gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, FR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, FR_lower_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, FR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, FR_lower_leg_geom))
+    if solo:
+        # Add the collision pairs to the geometric model
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, FR_upper_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, FR_lower_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, FR_upper_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, FR_lower_leg_geom))
 
-    #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_lower_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_lower_leg_geom))
-   
-    #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_lower_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HR_lower_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_lower_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_lower_leg_geom))
+    
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_upper_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_lower_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HR_upper_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HR_lower_leg_geom))
 
-    #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HL_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HL_lower_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HL_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HL_lower_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HL_upper_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HL_lower_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HL_upper_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HL_lower_leg_geom))
 
-    #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_lower_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HR_lower_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_lower_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HR_lower_leg_geom))
 
-    gmodel.addCollisionPair(pio.CollisionPair(HL_upper_leg_geom, HR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(HL_upper_leg_geom, HR_lower_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_upper_leg_geom))
-    gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_lower_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(HL_upper_leg_geom, HR_upper_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(HL_upper_leg_geom, HR_lower_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_upper_leg_geom))
+        #gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_lower_leg_geom))
+
+    else:
+        # Add the collision pairs to the geometric model
+        gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, FR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, FR_lower_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, FR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, FR_lower_leg_geom))
+
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HL_lower_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HL_lower_leg_geom))
+    
+        #gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_upper_leg_geom, HR_lower_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FL_lower_leg_geom, HR_lower_leg_geom))
+
+        #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HL_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HL_lower_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HL_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HL_lower_leg_geom))
+
+        #gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_upper_leg_geom, HR_lower_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(FR_lower_leg_geom, HR_lower_leg_geom))
+
+        gmodel.addCollisionPair(pio.CollisionPair(HL_upper_leg_geom, HR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(HL_upper_leg_geom, HR_lower_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_upper_leg_geom))
+        gmodel.addCollisionPair(pio.CollisionPair(HL_lower_leg_geom, HR_lower_leg_geom))
 
     gdata = gmodel.createData()
     return robot, rmodel, rdata, gmodel, gdata
