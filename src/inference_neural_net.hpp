@@ -130,7 +130,7 @@ ADFun tapeADNeuralNetInference(InferenceNeuralNetwork<ADScalar> nn, const int q_
     ad_X.resize(2*q_input_size);
     //ad_X << (ADScalar)0, (ADScalar)0, (ADScalar)0, (ADScalar)0;
     // Output size = 1 + input size/2 (dist + jac)
-    ad_Y.resize(1+2*q_input_size);
+    ad_Y.resize(1+q_input_size);
     CppAD::Independent(ad_X);
     // Initialize AD function
     ADFun ad_fun;   
