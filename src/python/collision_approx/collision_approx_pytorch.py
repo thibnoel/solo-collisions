@@ -164,10 +164,16 @@ def evalNetOnTestset(net, test_data, eval_jac=False):
 
 if __name__ == "__main__":
 
+    '''
     q_ind = [7,8]
     q_ranges = [[-np.pi, np.pi], [-np.pi, np.pi]]
     q_steps = [200,200]
+    '''
+    q_ind = [7,8,9]
+    q_ranges = [[-np.pi, np.pi], [-np.pi, np.pi], [-np.pi, np.pi]]
+    q_steps = [100,100, 100]
 
+    '''
     ######## 2D data
     # Load an existing sampled boundary
     bound2d = np.load("/home/tnoel/npy_data/npy_data/npy_data/2d_bound_ref_5000samp.npy", allow_pickle=True)
@@ -176,9 +182,9 @@ if __name__ == "__main__":
     # Load an existing dataset
     train_data = np.load('/home/tnoel/npy_data/npy_data/npy_data/datasets/2d/ref_randSampling_articularDist_100000samples.npy')
     test_data = np.load('/home/tnoel/npy_data/npy_data/npy_data/datasets/2d/ref_gridSampling_articularDist_200x200.npy')
-
-    ######## 3D data
     '''
+    ######## 3D data
+    
     # Load an existing sampled boundary
     bound2d = np.load("/home/tnoel/npy_data/npy_data/npy_data/3d_bound_ref_200x200.npy", allow_pickle=True)
     bound = bound2d
@@ -186,13 +192,13 @@ if __name__ == "__main__":
     # Load an existing dataset
     train_data = np.load('/home/tnoel/npy_data/npy_data/npy_data/datasets/3d/ref_randSampling_articularDist_1000000samples.npy')
     test_data = np.load('/home/tnoel/npy_data/npy_data/npy_data/datasets/3d/ref_gridSampling_articularDist_100x100x100samples.npy')
-    '''
+    
 
 
     # Use the boundary points as additional data : IMPROVES THE RESULTS A LOT!
     bound_data = np.zeros((bound.shape[0], bound.shape[1]+1))
     bound_data[:,:-1] = bound
-    #bound_data = bound_data[:100000] # Limit number of samples in 3D (very large bound dataset)
+    bound_data = bound_data[:100000] # Limit number of samples in 3D (very large bound dataset)
     
     # Format data for PyTorch
     X, Y = preprocessData(train_data)
@@ -203,7 +209,7 @@ if __name__ == "__main__":
     # Instantiate a network
         # Input dimension : 2*nb_dof (ex: for SOLO, input of size 4 if shoulder only, 6 if shoulder+knee)
         # Output dimension : 1 (collision distance), but the jacobian can be evaluated as well (dim. 1*nb_dof)
-    net = Net([[4, 8],[8,1]], activation=torch.tanh)
+    net = Net([[6, 48],[48,18],[18,1]], activation=torch.tanh)
     print(net.layers)
 
     # Define the loss and optimizer
@@ -211,7 +217,7 @@ if __name__ == "__main__":
     optimizer = optim.Adam(net.parameters(), lr=0.005)
 
     # Train the network
-    net = trainNet(net, X, Y, 50, 1000, optimizer, criterionF)
+    net = trainNet(net, X, Y, 100, 5000, optimizer, criterionF)
 
     # RESULTS
     print('Finished Training')

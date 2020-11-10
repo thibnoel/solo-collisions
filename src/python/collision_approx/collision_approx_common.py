@@ -30,3 +30,8 @@ def distCorrelation(ref_dist, pred_dist, offset=0):
     distCorr[:,1] = pred_dist[:,-1]
     distCorr[:,1] -= offset
     return distCorr
+
+
+def pred_RMSE(ref_dist, pred_dist, offset=0):
+    rmse = np.sqrt((ref_dist - pred_dist)**2)
+    return rmse

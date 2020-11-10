@@ -21,11 +21,13 @@ from solo_collisions_avoidance_control.solo_coll_wrapper_c import *
 from solo_collisions_avoidance_control.collisions_controller import *
 #from solo_collisions_avoidance_control.solo_c_wrappers import *
 
-def computePDTorque(q, q_des, vq, Kp, Kv, q_ind=[]):
+#from scripts.swing_feet import computeSwingingFeetTorque
+
+def computePDTorque(q, q_des, vq, vq_des, Kp, Kv, q_ind=[]):
     if len(q_ind) == 0 :
         q_ind = [i for i in range(len(q))]
     tau_q = np.zeros(len(q))
-    tau_q[q_ind] = -Kp*(q[q_ind] - q_des[q_ind]) - Kv*vq[q_ind]
+    tau_q[q_ind] = -Kp*(q[q_ind] - q_des[q_ind]) - Kv*(vq[q_ind] - vq_des[q_ind])
     return tau_q
 
 
@@ -91,7 +93,7 @@ q_init = np.zeros(12)
 
 q_init = np.array([q_init]).T
 
-robotID, revoluteJointIndices, physicsClient = loadBulletPhysicsClient(dt, q_init, enableGUI=False)
+robotID, revoluteJointIndices, physicsClient = loadBulletPhysicsClient(dt, q_init, enableGUI=True)
 
 robot, rmodel, rdata, gmodel, gdata = initSolo(solo=False)
 aq0 = np.zeros(robot.model.nv)
@@ -109,12 +111,15 @@ dist_list = []
 emTrigger_list = []
 
 # Gen code binding test
-nn_so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_nn.so"
+#nn_so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_nn.so"
 #nn_so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_nn_shd_knee.so"
+nn_so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_nn_shd_knee_large.so"
 nnCCollFun = CDLL(nn_so_file)
 
 #so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_legs8_witnessP.so"
+#so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_legs12_witnessP.so"
 so_file = "/home/tnoel/stage/solo-collisions/compiled_c_lib/libcoll_legs12_witnessP.so"
+
 cCollFun = CDLL(so_file)
 avg_exec_time = 0
 
@@ -123,28 +128,49 @@ emergencyFlag = False
 # Control parameters
     # Gains
 thresh_legs = 0.05
-kp_legs = 50
+kp_legs = 70
 kv_legs = 0
 
-thresh_shd = 0.4
-kp_shd = 25
+thresh_shd = 0.2
+kp_shd = 20.
 kv_shd = 0.0
+
+ref_traj_kp = 5*np.ones(12)
+#ref_traj_kp[3:] = 0
+ref_traj_kv = 0.1
+
+
     # Emergency bounds
 q_bounds = [-5,5]
 vq_bounds = [-40,40]
 
 ### GEPETTO VIEWER
-enable_viewer = True
+enable_viewer = False
 
 if enable_viewer:
     #viewer_coll = viewerClient(thresh_legs, 0, urdf="/home/tnoel/stage/solo-collisions/urdf/solo8_simplified.urdf", modelPath="/home/tnoel/stage/solo-collisions/urdf")
-    viewer_coll = viewerClient(20, 2, thresh_legs, thresh_shd, urdf="/home/tnoel/stage/solo-collisions/urdf/solo12_simplified.urdf", modelPath="/home/tnoel/stage/solo-collisions/urdf")
+    viewer_coll = viewerClient(20, 3, thresh_legs, thresh_shd, urdf="/home/tnoel/stage/solo-collisions/urdf/solo12_simplified.urdf", modelPath="/home/tnoel/stage/solo-collisions/urdf")
 
+
+# TEST WITH ADD. REF. TORQUE AS MOCK-UP CONTROLLER
+ref_q_list = np.load('q_list_hindlegs_ellipses_2min.npy')
+ref_dq_list = np.load('dq_list_hindlegs_ellipses_2min.npy')
+
+'''
+ref_q_list = np.load('q_ref_shoulder_config_space_circ_2min.npy')
+ref_dq_list = np.load('dq_ref_shoulder_config_space_circ_2min.npy')
+
+ref_q_list = np.load('q_ref_shoulder_coll_above_2min.npy')
+ref_dq_list = np.load('dq_ref_shoulder_coll_above_2min.npy')
+
+ref_q_list = np.load('q_ref_complex_scenario_2min.npy')
+ref_dq_list = np.load('dq_ref_complex_scenario_2min.npy')
+'''
 print(physicsClient.getNumJoints(robotID))
-for k in range(1000):    
+for k in range(6000):    
     # Step Bullet simulation
     physicsClient.stepSimulation()
-    time.sleep(0.02)
+    time.sleep(0.001)
 
     # Get robot current state
     q, vq = getPosVelJoints(robotID, revoluteJointIndices, physicsClient)
@@ -206,25 +232,30 @@ for k in range(1000):
     c_wPoints = getLegsWitnessPoints(c_results, nb_motors, nb_pairs)
 
     ### Get results from C generated code (shoulder neural net)
-    c_shd_dist, c_shd_jac = getAllShouldersCollisionsResults(q, nnCCollFun, 2, offset=0.08)
-    #c_shd_dist, c_shd_jac = getAllShouldersCollisionsResults(q, nnCCollFun, 3, offset=0.18) #offset with 3 inputs: 0.18 (small), 0.11 (large)"
+    #c_shd_dist, c_shd_jac = getAllShouldersCollisionsResults(q, nnCCollFun, 2, offset=0.08)
+    c_shd_dist, c_shd_jac = getAllShouldersCollisionsResults(q, nnCCollFun, 3, offset=0.11) #offset with 3 inputs: 0.18 (small), 0.11 (large)"
 
 
-    end = timer()
-    avg_exec_time += end-start
+    #end = timer()
+    #avg_exec_time += end-start
     #print("Avg exec time : {:.6f}\r".format(avg_exec_time/(k+1)))
 
     emergency_d_thresh = thresh_legs/4
 
     # Compute torque and measure elapsed time
-    start = timer()
+    #start = timer()
 
     tau_legs = computeRepulsiveTorque(q, vq, c_dist_legs, c_Jlegs, thresh_legs, kp_legs, kv_legs, opposeJacIfNegDist=True)
     tau_shd = computeRepulsiveTorque(q, vq, c_shd_dist, c_shd_jac, thresh_shd, kp_shd, kv_shd, opposeJacIfNegDist=False)
 
+    tau_q += 1*tau_legs
+    tau_q += 1*tau_shd
+    
+    #tau_q += ref_tau_q_list[k%len(ref_tau_q_list)][6:]
+    q_des = ref_q_list[k][7:]
+    v_des = ref_dq_list[k][6:]
 
-    #tau_q += tau_legs
-    tau_q += tau_shd
+    tau_q += computePDTorque(q, q_des, vq, v_des, ref_traj_kp, ref_traj_kv, q_ind=[])
 
     end = timer()
     #print(end - start)
@@ -264,10 +295,10 @@ for k in range(1000):
 
     # External force 
     
-    if k == 99:
+    #if k == 99:
         
         #physicsClient.applyExternalForce(robotID,4,[-300,0,0],[0,0,0], pb.LINK_FRAME)
-        physicsClient.applyExternalForce(robotID,9,[200,0,0],[0,0,0], pb.LINK_FRAME)
+        #physicsClient.applyExternalForce(robotID,9,[200,0,0],[0,0,0], pb.LINK_FRAME)
         #physicsClient.applyExternalForce(robotID,11,[-200,0,0],[0,0,0], pb.LINK_FRAME)
         
     physicsClient.setJointMotorControlArray(robotID,

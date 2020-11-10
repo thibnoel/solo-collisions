@@ -13,8 +13,8 @@ def initTalos():
                     #"arm_left_1_link_0",
                     "arm_left_2_link_0",
                     "arm_left_3_link_0",
-                    "arm_left_4_link_0",
-                    "arm_left_5_link_0"]
+                    "arm_left_4_link_0"]
+                    #"arm_left_5_link_0"]
                     #"arm_left_6_link_0",
                     #"arm_left_7_link_0"]
     geom_IDs = [gmodel.getGeometryId(name) for name in geom_names]
@@ -30,7 +30,8 @@ def initTalos():
     gmodel.addCollisionPair(pio.CollisionPair(geom_IDs[0], geom_IDs[1]))
     gmodel.addCollisionPair(pio.CollisionPair(geom_IDs[0], geom_IDs[2]))
     gmodel.addCollisionPair(pio.CollisionPair(geom_IDs[0], geom_IDs[3]))
-    gmodel.addCollisionPair(pio.CollisionPair(geom_IDs[0], geom_IDs[4]))
+    #gmodel.addCollisionPair(pio.CollisionPair(geom_IDs[0], geom_IDs[4]))
+    #gmodel.addCollisionPair(pio.CollisionPair(geom_IDs[0], geom_IDs[5]))
 
     npairs = len(gmodel.collisionPairs)
 
@@ -73,32 +74,32 @@ if __name__ == "__main__":
     # Initialize sampling parameters
     q_ind = [21,22,24]
     q_ranges = [q0_range, q1_range, q2_range]
-    q_steps = [50,50, 9]
+    q_steps = [75,75,22]
 
     # Sample FCL distance
     grid_config = generateGridConfigs(q_ind, q_ranges, q_steps)
     col_map = sampleFCLDistanceFromConfigList(robot_config, q_ind, grid_config, [k for k in range(npairs)], rmodel, rdata, gmodel, gdata, computeDist=False)
 
     # Sample collision boundary
-    bound = boundaryRandomSapling(q_ind, q_ranges, 1000, 1e-9, robot_config, [k for k in range(npairs)], rmodel, rdata, gmodel, gdata, extend_periodic=True)
+    bound = boundaryRandomSapling(q_ind, q_ranges, 5000, 1e-6, robot_config, [k for k in range(npairs)], rmodel, rdata, gmodel, gdata, extend_periodic=True)
 
     # Convert distance to articular distance
     dist_metric='euclidean'
     articular_col_map = spatialToArticular(col_map, bound, batch_size=100, metric=dist_metric)
-    articular_jacobian = getSampledJac(articular_col_map, bound, batch_size=100, metric=dist_metric)
+    #articular_jacobian = getSampledJac(articular_col_map, bound, batch_size=100, metric=dist_metric)
 
-    col_map = articular_col_map
+    #col_map = articular_col_map
 
     ######## Results visualization
     # 3D visualization
     fig = plt.figure()
-    visualize3DData(fig, col_map[np.where(col_map[:,-1] > 0)], q_ind, q_ranges, grid=False, q_steps=q_steps, subplot_pos=211, title="Dist. > 0", cmap=plt.cm.viridis)
-    visualize3DData(fig, col_map[np.where(col_map[:,-1] <= 0)], q_ind, q_ranges, grid=False, q_steps=q_steps, subplot_pos=212, title="Dist. <= 0", cmap=plt.cm.viridis)
+    visualize3DData(fig, articular_col_map[np.where(col_map[:,-1] > 0)], q_ind, q_ranges, grid=False, q_steps=q_steps, subplot_pos=211, title="Dist. > 0", cmap=plt.cm.viridis, vmin=np.min(col_map[:,-1]))
+    visualize3DData(fig, articular_col_map[np.where(col_map[:,-1] <= 0)], q_ind, q_ranges, grid=False, q_steps=q_steps, subplot_pos=212, title="Dist. <= 0", cmap=plt.cm.viridis, vmin=np.min(col_map[:,-1]))
     
     # 2D flattened visualization
     plt.figure()
     visualizeFlat3DData(articular_col_map, q_ind, q_ranges, q_steps, title="FCL distance", cmap=plt.cm.RdYlGn)
-
+'''
     jac0 = articular_jacobian[:,[0,1,2,3]]
     jac1 = articular_jacobian[:,[0,1,2,4]]
     jac2 = articular_jacobian[:,[0,1,2,5]]
@@ -108,5 +109,5 @@ if __name__ == "__main__":
     visualize3DData(fig2, jac0, q_ind, q_ranges, grid=False, q_steps=q_steps, subplot_pos=131, title="J_q0", cmap=plt.cm.PiYG)
     visualize3DData(fig2, jac1, q_ind, q_ranges, grid=False, q_steps=q_steps, subplot_pos=132, title="J_q1", cmap=plt.cm.PiYG)
     visualize3DData(fig2, jac2, q_ind, q_ranges, grid=False, q_steps=q_steps, subplot_pos=133, title="J_q2", cmap=plt.cm.PiYG)
-
-    plt.show()
+'''
+    #plt.show()

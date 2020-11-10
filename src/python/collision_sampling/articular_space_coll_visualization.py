@@ -13,8 +13,10 @@ def visualize2DData(data, q_ind, q_ranges, grid=False, q_steps=None, title="", c
             print("arg 'q_steps' missing for grid visualization")            
         data = reshapeDataToGrid(data, q_steps)
         plt.imshow(data, extent=q_ranges[0]+q_ranges[1], cmap=cmap)
-        plt.xlabel("q[{}] - {} ticks".format(q_ind[0], q_steps[0]))
-        plt.ylabel("q[{}] - {} ticks".format(q_ind[1], q_steps[1]))
+        #plt.xlabel("q[{}] - {} ticks".format(q_ind[0], q_steps[0]))
+        #plt.ylabel("q[{}] - {} ticks".format(q_ind[1], q_steps[1]))
+        plt.xlabel("q[{}]".format(q_ind[0]))
+        plt.ylabel("q[{}]".format(q_ind[1]))
         plt.title(title)
     else:
         plt.scatter(data[:,0], data[:,1], c=data[:,2], cmap=cmap)
@@ -23,9 +25,9 @@ def visualize2DData(data, q_ind, q_ranges, grid=False, q_steps=None, title="", c
         plt.title(title)
 
 
-def visualize3DData(plt_figure, data, q_ind, q_ranges, grid=False, q_steps=None, subplot_pos=111, title="", cmap=plt.cm.viridis):
+def visualize3DData(plt_figure, data, q_ind, q_ranges, grid=False, q_steps=None, subplot_pos=111, title="", cmap=plt.cm.viridis, vmin=0):
     ax = plt_figure.add_subplot(subplot_pos, projection='3d')
-    ax.scatter(data[:,0], data[:,1], data[:,2], c=data[:,3], cmap=cmap)#, vmin=np.min(data[:,3]))
+    ax.scatter(data[:,0], data[:,1], data[:,2], c=data[:,3], cmap=cmap, vmin=vmin)
     #ax10.set_facecolor('xkcd:grey')
     ax.set_xlabel("q[{}]".format(q_ind[0]))
     ax.set_ylabel("q[{}]".format(q_ind[1]))

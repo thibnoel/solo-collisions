@@ -32,6 +32,14 @@ def evalApproxDistFromFFT(q0, q1, fft_estim):
     return dist/(n*m)
 
 
+def predFromFFT(ref_dist, fft_estim):
+    pred = np.zeros(ref_dist.shape)
+    for i in range(len(ref_dist)):
+        for j in range(len(ref_dist[0])):
+            pred[i,j] = evalApproxDistFromFFT(ref_dist[i,j,0], ref_dist[i,j,1], fft_estim)
+    return pred
+
+
 # Evaluate the full jacobian from the FT coeffs (ie full range of the inputs)
 def evalApproxJacFromFFT(fft_estim):
     n,m = fft_estim.shape

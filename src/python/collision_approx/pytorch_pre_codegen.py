@@ -113,8 +113,9 @@ def writeFile(path, content_string):
 
 
 if __name__ == "__main__":
-    trainedModel_path = "/home/tnoel/npy_data/pytorch_data/test_2Dmodel_tanh_461.pth"
-    trained_model_arch = [[4,8],[8,1]]
+    #trainedModel_path = "/home/tnoel/npy_data/pytorch_data/test_2Dmodel_tanh_461.pth"
+    trainedModel_path = "nn_6_48_18_1.pth"
+    trained_model_arch = [[6,48],[48,18],[18,1]]
     #shoulder_model = loadTrainedNeuralNet(trainedModel_path, trained_model_arch)
 
     s = generateCGMain(trainedModel_path, trained_model_arch, 'test_model')

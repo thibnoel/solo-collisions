@@ -11,7 +11,7 @@ def visualizeCollisionDist(gv, p1, p2, name, color, init=False):
     ### --- display witness as normal patch tangent to capsule
     if(init):
         for i in range(2):
-                gv.addCylinder('world/pinocchio/collisions/simple_patch_' + name + '_%d'%i, .01, .003, color)
+                gv.addCylinder('world/pinocchio/collisions/simple_patch_' + name + '_%d'%i, .1, .003, color)
         gv.addLine('world/pinocchio/collisions/line_' + name, p1.tolist(), p2.tolist(), color)
 
     direc = (p2-p1)/np.linalg.norm(p2-p1) 
@@ -68,7 +68,7 @@ def visualizeTorques(gv, rmodel, rdata, tau_q, init=False):
         jointFrame = rdata.oMi[k+2]
         #jointFrame = rdata.oMi[k]
         name = 'world/pinocchio/collisions/torque_' + str(k)
-        color = [0,0,1,1]
+        color = [0,0,1,0]
 
         additional_transl = np.array([0,0,0.0])
 
@@ -235,12 +235,12 @@ class NonBlockingViewerFromRobot():
             plt.figure()
             plt.suptitle("Shoulders distances")
 
-            shd_dist_landscape = np.load('/home/tnoel/stage/solo-collisions/src/python/ref_net_dist_landscape.npy', allow_pickle=True)
+            shd_dist_landscape = np.load('/home/tnoel/stage/solo-collisions/src/python/ref_net3d_dist_landscape.npy', allow_pickle=True)
             #visualizeShoulderBackground(q_viewer, shd_dist_landscape, shd_activation_thresh, dim=3)
             '''
             plt.figure()
             
-            shd_dist_landscape = np.load('/home/tnoel/stage/solo-collisions/src/python/ref_net_dist_landscape.npy', allow_pickle=True)
+            shd_dist_landscape = np.load('/home/tnoel/stage/solo-collisions/src/python/ref_net3d_dist_landscape.npy', allow_pickle=True)
             plt.suptitle("Shoulders distances")
 
             shd_dist_landscape = 1*(shd_dist_landscape > 0) + 1*(shd_dist_landscape > shd_activation_thresh) 
@@ -262,7 +262,7 @@ class NonBlockingViewerFromRobot():
         while(1):
             for n in gv.getNodeList():
                 if 'LEG_0' in n and 'collision' in n and len(n)>27:
-                    gv.setColor(n, [1,0.5,0,0.1])
+                    gv.setColor(n, [1,0.5,0,0.2])
             
             for i in range(robot.nq):
                 q_viewer[i] = shared_q_viewer[i]
@@ -288,7 +288,7 @@ class NonBlockingViewerFromRobot():
             visualizeTorques(gv, rmodel, rdata, tau_q, init=(count==0))
 
             gv.refresh()
-            time.sleep(self.dt)
+            #time.sleep(self.dt)
             count += 1
         
         plt.show()

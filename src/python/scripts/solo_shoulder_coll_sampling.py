@@ -35,7 +35,7 @@ if __name__ == "__main__":
     knee_rot_range = [-np.pi, np.pi]    
 
     # Choose 2D (shoulder DoF only) or 3D (shoulder + knee DoF) sampling of the collision in articular space
-    coll_3d = True
+    coll_3d = False
     
     if coll_3d:
         # Initialize sampling parameters
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         # 2D : shoulder DoF
         q_ind = [7,8]
         q_ranges = [x_rot_range, y_rot_range]
-        q_steps = [50,50]
+        q_steps = [200,200]
 
         collisionPairs = [0]
         
@@ -68,6 +68,7 @@ if __name__ == "__main__":
         grid_config = generateGridConfigs(q_ind, q_ranges, q_steps)
         #rand_config = generateRandomConfigs(5000, q_ind, q_ranges)
         col_map = sampleFCLDistanceFromConfigList(ref_config, q_ind, grid_config, collisionPairs, rmodel, rdata, gmodel, gdata, computeDist=False)
+        #col_map_d = sampleFCLDistanceFromConfigList(ref_config, q_ind, grid_config, collisionPairs, rmodel, rdata, gmodel, gdata, computeDist=True)
     
         # Example of boundary estimation between 2 known configuration planes
         '''
@@ -80,10 +81,11 @@ if __name__ == "__main__":
         bound = np.concatenate((bound0, bound1))
         '''
         # Example of randomly sampled boundary estimation
-        #bound = boundaryRandomSapling(q_ind, q_ranges, 1000, 1e-9, ref_config, [0,1], rmodel, rdata, gmodel, gdata, extend_periodic=True)
+        plt.figure()
+        bound = boundaryRandomSapling(q_ind, q_ranges, 20, 1e-9, ref_config, [0,1], rmodel, rdata, gmodel, gdata, extend_periodic=True)
         # Load an existing sampled boundary
-        bound2d = np.load("/home/tnoel/npy_data/npy_data/npy_data/2d_bound_ref_5000samp.npy", allow_pickle=True)
-        bound = bound2d
+        #bound2d = np.load("/home/tnoel/npy_data/npy_data/npy_data/2d_bound_ref_5000samp.npy", allow_pickle=True)
+        #bound = bound2d
     
 
     # Convert spatial distance to articular distance
@@ -91,7 +93,9 @@ if __name__ == "__main__":
     dist_metric = 'euclidean'
     articular_col_map = spatialToArticular(col_map, bound, batch_size=100, metric=dist_metric)
     articular_jacobian = getSampledJac(articular_col_map, bound, batch_size=100, metric=dist_metric)
+    #init_jacobian = getSampledJac(col_map_d, bound, batch_size=100, metric=dist_metric)
 
+    #articular_jacobian = init_jacobian
 
     ######## Results visualization
     # 3D
@@ -121,11 +125,16 @@ if __name__ == "__main__":
     else:
         # Visualize distance results
         plt.figure()
-        plt.subplot(2,1,1)
-        visualize2DData(col_map, q_ind, q_ranges, grid=True, q_steps=q_steps, title="FCL distance", cmap=plt.cm.viridis)
-        plt.subplot(2,1,2)
+        #plt.subplot(1,3,1)
+        #visualize2DData(col_map_d, q_ind, q_ranges, grid=True, q_steps=q_steps, title="FCL distance", cmap=plt.cm.viridis)
+        #plt.colorbar()
+        plt.subplot(1,3,2)
+        visualize2DData(col_map, q_ind, q_ranges, grid=True, q_steps=q_steps, title="Binary collision", cmap=plt.cm.gray)
+        plt.colorbar()
+        plt.subplot(1,3,3)
         visualize2DData(articular_col_map, q_ind, q_ranges, grid=True, q_steps=q_steps, title="Articular distance", cmap=plt.cm.RdYlGn)
-        
+        plt.colorbar()
+
         # visualize jacobians results
         plt.figure()
         plt.subplot(2,1,1)

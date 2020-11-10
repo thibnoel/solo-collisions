@@ -14,7 +14,7 @@ from quadprog import solve_qp
 
 ##### INITIALIZATION METHODS
 # Copied from example robot data, remove free flyer base 
-def loadSimplifiedSolo(solo=True):
+def loadSimplifiedSolo(solo=True, free_flyer=False):
     if solo:
         URDF_FILENAME = "solo.urdf"
     else:
@@ -42,16 +42,18 @@ def loadSimplifiedSolo(solo=True):
     else:
         urdf_file = "solo12_simplified.urdf"
     
-
-    robot = RobotWrapper.BuildFromURDF(urdf_path + urdf_file, [mesh_dir])#, pio.JointModelFreeFlyer())
+    if(free_flyer):
+        robot = RobotWrapper.BuildFromURDF(urdf_path + urdf_file, [mesh_dir], pio.JointModelFreeFlyer())
+    else:
+        robot = RobotWrapper.BuildFromURDF(urdf_path + urdf_file, [mesh_dir])#, pio.JointModelFreeFlyer())
     robot.q0 = readParamsFromSrdf(robot.model, modelPath + SRDF_SUBPATH, False, False, "standing")
     #robot_config = robot.q0
     
     return robot
 
 # Initialize SOLO model
-def initSolo(solo=True):
-    robot = loadSimplifiedSolo(solo=solo)
+def initSolo(solo=True, free_flyer=False):
+    robot = loadSimplifiedSolo(solo=solo, free_flyer=free_flyer)
     # Get robot model, data, and collision model
     rmodel = robot.model
     rdata  = rmodel.createData()

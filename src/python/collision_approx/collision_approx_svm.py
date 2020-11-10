@@ -1,16 +1,16 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 from sklearn import svm
-from solo12_collisions_utils import followBoundary
+#from solo12_collisions_utils import followBoundary
 
 # Load the collision map from file
-col_map_file = './npy_data/collision_map_centered_res100.npy'
+col_map_file = '/home/tnoel/npy_data/npy_data/npy_data/datasets/2d/ref_gridSampling_articularDist_200x200.npy'
 col_map = np.load(col_map_file, allow_pickle=True)
-traj1 = np.array(followBoundary(col_map))
-traj1 = [[t[1], t[0]] for t in traj1]
+#traj1 = np.array(followBoundary(col_map))
+#traj1 = [[t[1], t[0]] for t in traj1]
 
-traj2 = np.array(followBoundary(col_map, first_dir=2))
-traj2 = [[t[1], t[0]] for t in traj2]
+#traj2 = np.array(followBoundary(col_map, first_dir=2))
+#traj2 = [[t[1], t[0]] for t in traj2]
 
 print(col_map.shape)
 #plt.imshow(col_map.T)
