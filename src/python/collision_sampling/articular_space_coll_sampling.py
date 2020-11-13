@@ -141,10 +141,10 @@ def boundaryRandomSapling(q_ind, q_ranges, nb_bound, threshold, ref_config, coll
             qs = dichotomyBoundaryLoc(q_free_list[f_ind], q_coll_list[c_ind], threshold,ref_config, q_ind, collisionPairs, rmodel, rdata, gmodel, gdata)
             bound.append(qs)
             
-            plt.plot([q_free_list[f_ind][0], q_coll_list[c_ind][0]], [q_free_list[f_ind][1], q_coll_list[c_ind][1]], linestyle='dashed', c='black')
-            plt.scatter(q_free_list[f_ind][0], q_free_list[f_ind][1], c='g', s=10)
-            plt.scatter(q_coll_list[c_ind][0], q_coll_list[c_ind][1], c='r', s=10)
-            plt.scatter(qs[0], qs[1], c='b', s=20)
+            #plt.plot([q_free_list[f_ind][0], q_coll_list[c_ind][0]], [q_free_list[f_ind][1], q_coll_list[c_ind][1]], linestyle='dashed', c='black')
+            #plt.scatter(q_free_list[f_ind][0], q_free_list[f_ind][1], c='g', s=10)
+            #plt.scatter(q_coll_list[c_ind][0], q_coll_list[c_ind][1], c='r', s=10)
+            #plt.scatter(qs[0], qs[1], c='b', s=20)
 
             q_free_list = np.delete(q_free_list, f_ind, axis=0)
             q_coll_list = np.delete(q_coll_list, c_ind, axis=0)
