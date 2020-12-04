@@ -110,7 +110,7 @@ Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> computeCapsulesCollisionJa
                       pinocchio::DataTpl<Scalar> data, 
                       Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& config, 
                       std::pair<int,int> framesPair,
-                      std::pair<Eigen::Matrix<Scalar, 3, 1>,Eigen::Matrix<Scalar, 3, 1>> witnessPoints)
+                      DistanceResult<Scalar> distResult)
 {
     int qDim = model.nq;
 
@@ -125,8 +125,8 @@ Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> computeCapsulesCollisionJa
     Jf1.resize(6,qDim);
     Jf2.resize(6,qDim);
 
-    p1 = witnessPoints.first;
-    p2 = witnessPoints.second;
+    p1 = distResult.wPoint1;
+    p2 = distResult.wPoint2;
 
     int base_frame_id = (int)model.getFrameId("base_link"); 
     // Compute FK
@@ -156,8 +156,7 @@ Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> computeCapsulesCollisionJa
 
     // Compute distance jac. from vel jac. oJdp
     n = (oMf2.translation() + oMf2.rotation()*p2) - (oMf1.translation() + oMf1.rotation()*p1);
-    ADScalar dist = n.transpose()*n;
-    dist = CppAD::sqrt(dist);
+    dist = distResult.distance;
     std::cout << dist << std::endl;
     distJac = n.transpose()*oJdp/dist;
 
@@ -170,71 +169,6 @@ Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> computeCapsulesCollisionJa
 // and the robot models.
 // REMARK: DIMENSIONS!!
 // The jacobian for 1 pair has a dimension 3x12, which leads to the model having an output of size : n_pairs*(1 + 3*12)
-ADFun deprec_tapeADCapsulesCollisionComputation(pinocchio::Model model, 
-                       pinocchio::GeometryModel gmodel, 
-                       //std::pair<int,int>* framesPairs, 
-                       std::pair<int,int>* geomPairs,
-                       int nb_pairs)
-{
-    std::cout << "Nb pairs : " << nb_pairs  << std::endl;
-    // Cast the model to ADScalar type and regenerate the model data
-    ModelTpl<ADScalar> cast_rmodel = model.cast<ADScalar>(); 
-    DataTpl<ADScalar> cast_rdata(cast_rmodel);
-
-    // Initnialize AD input and output
-    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_X;
-    Eigen::Matrix<ADScalar, Eigen::Dynamic, 1> ad_Y;
-    ad_X.resize(cast_rmodel.nq);
-    //ad_Y.resize(nb_pairs*(1+3*cast_rmodel.nq));
-    ad_Y.resize(nb_pairs*(1+cast_rmodel.nq));
-    CppAD::Independent(ad_X);
-    // Initialize AD function
-    ADFun ad_fun;
-
-    // Compute forward kinematics 
-    pinocchio::forwardKinematics(cast_rmodel, cast_rdata, ad_X);
-    pinocchio::updateFramePlacements(cast_rmodel, cast_rdata);    
-
-    // Tape the function
-    for(int i=0; i<nb_pairs; i++)
-    {
-        //int ind_offset = (1+3*cast_rmodel.nq);
-        int ind_offset = (1+cast_rmodel.nq);
-
-        // Get the geometries' CollisionGeometryPtr, casted as fcl::Capsule
-        boost::shared_ptr< fcl::Capsule > caps1 = boost::dynamic_pointer_cast< fcl::Capsule >( gmodel.geometryObjects[geomPairs[i].first].geometry );
-        boost::shared_ptr< fcl::Capsule > caps2 = boost::dynamic_pointer_cast< fcl::Capsule >( gmodel.geometryObjects[geomPairs[i].second].geometry );
-
-        // Get the geometries placements in their parent frames
-        pinocchio::SE3Tpl<ADScalar> f1Mc1 = gmodel.geometryObjects[geomPairs[i].first].placement.cast<ADScalar>();
-        pinocchio::SE3Tpl<ADScalar> f2Mc2 = gmodel.geometryObjects[geomPairs[i].second].placement.cast<ADScalar>();
-        
-        // Make the pairs arguments for code gen.
-        std::pair<boost::shared_ptr< fcl::Capsule > ,boost::shared_ptr< fcl::Capsule > > capsPair = std::make_pair(caps1, caps2);
-        std::pair<SE3Tpl<ADScalar>, SE3Tpl<ADScalar>> placementsPair = std::make_pair(f1Mc1, f2Mc2);
-
-        // Tape collision distance operations
-        //DistanceResult<ADScalar> distRes = computeCapsulesCollisionDistance<ADScalar>(cast_rdata, framesPairs[i], capsPair, placementsPair);
-        std::pair<int,int> framesPair = std::make_pair((int)gmodel.geometryObjects[geomPairs[i].first].parentFrame, (int)gmodel.geometryObjects[geomPairs[i].second].parentFrame);
-        DistanceResult<ADScalar> distRes = computeCapsulesCollisionDistance<ADScalar>(cast_rdata, framesPair, capsPair, placementsPair);
-
-        ad_Y[ind_offset*i] = CppAD::sqrt(distRes.distance) - (caps1->radius + caps2->radius);
-
-        std::pair<Eigen::Matrix<ADScalar, 3, 1>, Eigen::Matrix<ADScalar, 3, 1>> witnessPoints = std::make_pair(distRes.wPoint1, distRes.wPoint2);
-        // Tape collision jacobian operations
-        Eigen::Matrix<ADScalar, Eigen::Dynamic, Eigen::Dynamic> jac;
-
-        jac = computeCapsulesCollisionJacobian<ADScalar>(cast_rmodel, cast_rdata, ad_X, framesPair, witnessPoints);
-        jac.resize(cast_rmodel.nq,1);
-        ad_Y.block(ind_offset*i + 1, 0, cast_rmodel.nq, 1) = jac;
-
-        std::cout << witnessPoints.first << std::endl;
-        std::cout << witnessPoints.second << std::endl;
-    }
-
-    ad_fun.Dependent(ad_X, ad_Y); 
-    return ad_fun;
-}
 
 // Including witness points in gen code result
 ADFun tapeADCapsulesCollisionComputation(pinocchio::Model model, 
@@ -285,7 +219,8 @@ ADFun tapeADCapsulesCollisionComputation(pinocchio::Model model,
         std::pair<int,int> framesPair = std::make_pair((int)gmodel.geometryObjects[geomPairs[i].first].parentFrame, (int)gmodel.geometryObjects[geomPairs[i].second].parentFrame);
         DistanceResult<ADScalar> distRes = computeCapsulesCollisionDistance<ADScalar>(cast_rdata, framesPair, capsPair, placementsPair);
 
-        ad_Y[ind_offset*i] = CppAD::sqrt(distRes.distance) - (caps1->radius + caps2->radius);
+        distRes.distance = CppAD::sqrt(distRes.distance) - (caps1->radius + caps2->radius);
+        ad_Y[ind_offset*i] = distRes.distance;
 
         std::pair<Eigen::Matrix<ADScalar, 3, 1>, Eigen::Matrix<ADScalar, 3, 1>> witnessPoints = std::make_pair(distRes.wPoint1, distRes.wPoint2);
         ad_Y.block(ind_offset*i + 1 + cast_rmodel.nq, 0, 3, 1) = witnessPoints.first;
@@ -297,7 +232,7 @@ ADFun tapeADCapsulesCollisionComputation(pinocchio::Model model,
         // Tape collision jacobian operations
         Eigen::Matrix<ADScalar, Eigen::Dynamic, Eigen::Dynamic> jac;
 
-        jac = computeCapsulesCollisionJacobian<ADScalar>(cast_rmodel, cast_rdata, ad_X, framesPair, witnessPoints);
+        jac = computeCapsulesCollisionJacobian<ADScalar>(cast_rmodel, cast_rdata, ad_X, framesPair, distResult);
         jac.resize(cast_rmodel.nq,1);
         ad_Y.block(ind_offset*i + 1, 0, cast_rmodel.nq, 1) = jac;
 
