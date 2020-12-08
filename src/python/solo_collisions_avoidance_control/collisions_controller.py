@@ -16,9 +16,9 @@ def computeRepulsiveTorque(q, vq, collDistances, collJacobians, dist_thresh=0.1,
 
         tau_rep = np.zeros(len(q))
         # If violation, compute viscoelastic repulsive torque along the collision jacobian
-        if(d<0 and opposeJacIfNegDist):
-            J = -J
-
+                #UNNECESSARY (fixed in cpp )
+                #if(d<0 and opposeJacIfNegDist):
+                #    J = -J
         if(d < dist_thresh and i in active_pairs):
             tau_rep = -kp*(d - dist_thresh) - kv*J@vq
         else:
